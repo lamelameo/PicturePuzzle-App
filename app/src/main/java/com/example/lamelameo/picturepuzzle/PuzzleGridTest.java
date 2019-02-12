@@ -5,7 +5,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.media.Image;
 import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -17,10 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Random;
-import java.util.Timer;
+import java.util.*;
 
 public class PuzzleGridTest extends AppCompatActivity {
 
@@ -31,6 +27,7 @@ public class PuzzleGridTest extends AppCompatActivity {
     private int emptyCellIndex;
     private VelocityTracker mVelocityTracker = null;
     private float xDown, yDown;
+    private int numRows;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,14 +37,16 @@ public class PuzzleGridTest extends AppCompatActivity {
         final GridLayout puzzleGrid = findViewById(R.id.gridLayout);
 
         //TODO: create game timer
-        TextClock textClock = new TextClock(this);
-        long time = SystemClock.uptimeMillis();
-        Timer timer = new Timer();
-//        timer.schedule();
+//        TimePicker timePicker = new TimePicker(this);
+//        TextClock textClock = new TextClock(this);
+//        // get uptime when timer starts then again every x amount of time?
+//        long time = SystemClock.uptimeMillis();
+//        Timer timer = new Timer();
+////        timer.schedule();
 
         // get number of columns set
-        //TODO: allow for diff nums
         final int numCols = getIntent().getIntExtra("numColumns", 4);
+        numRows = numCols;
         int gridSize = puzzleGrid.getLayoutParams().width;
         // get photopath if taken
         String photoPath = getIntent().getStringExtra("photoPath");
@@ -65,7 +64,6 @@ public class PuzzleGridTest extends AppCompatActivity {
             createBitmapGrid(bmp2, numCols, numCols, gridSize);
         }
 
-        //TODO: set col/row based on amount given
         puzzleGrid.setColumnCount(numCols);
         puzzleGrid.setRowCount(numCols);
         // initialise emptycell index tracker
@@ -82,10 +80,10 @@ public class PuzzleGridTest extends AppCompatActivity {
             cellCols.add(new ArrayList<ImageView>());
         }
 
-        // create randomised grid list - contains 15 indexes in random order which can be used to assign bitmaps to cells
+        // create randomised grid list - contains indexes in random order which can be used to assign bitmaps to cells
         ArrayList<Integer> randomisedGrid = randomiseGrid(numCols);
 
-        //TODO: allow for diff sized grids
+        //TODO: allow for m x n sized grids?
         for (int x=0; x<numCols; x++) {
             for (int y=0; y<numCols; y++) {
                 final int index = x*numCols + y;
@@ -116,17 +114,9 @@ public class PuzzleGridTest extends AppCompatActivity {
                 }
 
                 // set click/touch listeners for cells
+                //TODO: maybe use custom imageviews for cells as this warning appears about not overriding performclick..
                 gridCell.setOnTouchListener(swipeListener);
-                gridCell.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        int[] cellTag = (int[])view.getTag();
-                        if (cellTag[1] != numCols*numCols-1) {
-                            //TODO: fix the code in this function...can be tidied up /changed
-                            moveCell(view, numCols);
-                        }  // else is empty cell and does nothing on click
-                    }
-                });
+                gridCell.setOnClickListener(cellClickListener);
 
             }
         }
@@ -142,8 +132,14 @@ public class PuzzleGridTest extends AppCompatActivity {
         ArrayList<Integer> randomisedGrid = new ArrayList<>();
         ArrayList<Integer> posPool = new ArrayList<>();
         int gridSize = numCols*numCols;
+        // list of ascending values from 0 - size of grid used for tracking values tested for inversions
+        ArrayList<Integer> unTestedValues = new ArrayList<>();
 
-        while (true) {
+        // TODO: slow algorithm? test how fast it runs and change it if needed - takes 3ms for 1 while loop
+        //  50% of states are solvable but we fix last cell? => x(1 + 1 + (n-1)(3) + n(2 + 6) + 1 + (n-1)(3 + n(6)/2) + 1 + 1)
+        //     what % chance solvable? determines x                                       [n for sum nat nums = gridsize-1]
+
+        while (true) {  // create randomised grid in while loop and only break if
             // initialise variables for start of each loop
             int bound = gridSize-1;  // bounds for random generator...between 0 (inclusive) and number (exclusive)
             randomisedGrid.clear();
@@ -153,6 +149,7 @@ public class PuzzleGridTest extends AppCompatActivity {
 
             // randomise grid and create list with outcome
             for (int x=0; x<gridSize; x++) {
+                unTestedValues.add(x);
                 if (x == gridSize-1) {  // add last index to last in list to ensure it is empty
                     randomisedGrid.add(gridSize-1);
                 } else {
@@ -164,26 +161,41 @@ public class PuzzleGridTest extends AppCompatActivity {
                 }
             }
 
-            //TODO: n=odd -> inversions: even = solvable
+            // n=odd -> inversions: even = solvable
             // n=even -> empty cell on even row (from bottom: 1,2,3++ = 1 for bottom right) + inversions: odd = solvable
             //        -> empty cell on odd row + inversions: even = solvable
             // inversion: position pairs (a,b) where (list) index a < index b and (value) a > b have to check all
 
-            //  check 1st cell and all pairs it has by incrementing to end of list
-            //  then increment cell position +1 and check pairs to end of list - function ends when cell position = list length
-
             int inversions = 0;
-            for (int index=0; index<randomisedGrid.size()-1; index++) {  // test all nums in grid for pairs with nums after them in list
-                for (int x=index; x<randomisedGrid.size(); x++) {  // find all pairs with current index and those greater than it
-                    int currentNum = randomisedGrid.get(index);
-                    int pairNum = randomisedGrid.get(x);  // get the next highest index
-                    if (currentNum > pairNum) {  // inversion is if the paired number is greater than the current tested num
+            for (int index=0; index<gridSize-1; index++) {  // test all grid cells for pairs with higher index cells
+                int currentNum = randomisedGrid.get(index);
+                for (int x=index+1; x<gridSize; x++) {  // find all pairs with higher index than current selected cell
+                    int pairNum = randomisedGrid.get(x);  // get the next highest index cell
+                    if (currentNum > pairNum) {  // add inversion if paired cell value is less than current cell value
                         inversions += 1;
                     }
+
                 }
             }
+
+            //TODO: alternate method to count inversions, faster or slower?
+            // logn for search, n for remove, but n decreases each loop
+
+//            // index of the current value being tested in the ordered values = how many lesser values have a greater
+//            // index than it and therefore how many inversions there are for this value - if we remove tested values
+//            // as we go, the order remains but possible inversions are removed
+//            int inversions = 0;
+//            for (int index=0; index<gridSize-1; index++) {  // test all grid cells for pairs with higher index cells
+//                int currentNum = randomisedGrid.get(index);  // O(1) to access in array
+//                int numInvs = unTestedValues.indexOf(currentNum);  // O(logn) to find value in sorted array
+//                inversions += numInvs;
+//                // remove current num before next loop, use its index so no search is needed
+//                unTestedValues.remove(numInvs);  // O(n) to remove item at current index in sorted array
+//            }
+//            unTestedValues.remove(0);  // remove the last remaining value as we dont loop anymore
+
             Log.i(TAG, "randomiseGrid: inversions "+inversions);
-            // check solvability of randomised grid -  if it is then can break from while loop and return that grid
+            // if randomised grid is sovlable then break the while loop and return that grid - else next loop creates new grid
             if (inversions%2 == 0) {  // empty cell always on bottom right so both odd and even size grids need even inversions
                 break;
             }
@@ -191,7 +203,7 @@ public class PuzzleGridTest extends AppCompatActivity {
         return randomisedGrid;
     }
 
-    // convert density independent pixels to pixels using the devices pixel density
+    /** convert density independent pixels to pixels using the devices pixel density */
     private int dpToPx(float dp) {
         float density = getResources().getDisplayMetrics().density;
         // rounds up/down around 0.5
@@ -199,6 +211,9 @@ public class PuzzleGridTest extends AppCompatActivity {
         return (int) pixels;
     }
 
+    /** Scale an image given a @photopath to a specific views size, @viewSize and return as a Bitmap
+     * Intended to be used for photos taken with a camera intent so images are by default in landscape
+     * Therefore images are also rotated 90 degrees */
     private Bitmap scalePhoto(int viewSize, String photopath) {
         // scale image previews to fit the allocated View to save app memory
         BitmapFactory.Options bmOptions = new BitmapFactory.Options();
@@ -257,39 +272,39 @@ public class PuzzleGridTest extends AppCompatActivity {
         return true;
     }
 
-    /** called if a click occurs on a direct neighbour of the empty cell
-     *swaps each cells image and image tag and calls gridcorrect to check if grid is solved */
-    private void moveCell(View view, int gridCols) {
-
-        ImageView cellImage = (ImageView)view;
-        ImageView emptyCell = gridCells.get(emptyCellIndex);
-        int[] emptyTag = (int[])emptyCell.getTag();
-        int lastCell = gridCols*gridCols-1;
-        int[] cellTag = (int[])cellImage.getTag();
-        int gridIndex = cellTag[0];
-
-        // if clicked cells grid index is left/right/up/down of empty cell then we swap their image/tags
-        if (gridIndex == emptyCellIndex - 1 || gridIndex == emptyCellIndex + 1
-                || gridIndex == emptyCellIndex - gridCols || gridIndex == emptyCellIndex + gridCols) {
-            //swap the cells images and image tags
-            Drawable image = cellImage.getDrawable();
-            // set neighbour image and tag
-            emptyCell.setImageDrawable(image);
-            emptyTag[1] = cellTag[1];
-            // set clicked image and tag
-            cellImage.setImageDrawable(null);
-            cellTag[1] = lastCell;
-            // update empty cell tracker
-            emptyCellIndex = gridIndex;
-            // check grid to see if it is solved
-            gridCorrect();
+    /** Handle single clicks on any cell other than the empty cell - these are filtered out in the touchListener
+     * checks if the clicked cell is a direct neighbour of the empty cell
+     * if so then calls MoveCells to handle movement of images/tags and checking if grid is solved */
+    private View.OnClickListener cellClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            ImageView cellImage = (ImageView)v;
+            int[] cellTag = (int[])cellImage.getTag();
+            int cellIndex = cellTag[0];
+            int lastCell = numRows*numRows-1;
+            // check if cell is in same row or column as empty cell
+            int emptyCellRow = (int)Math.floor(emptyCellIndex/(float)numRows);
+            int emptyCellCol = emptyCellIndex - emptyCellRow*numRows;
+            int cellRow = (int)Math.floor(cellIndex/(float)numRows);
+            int cellCol = cellIndex - cellRow*numRows;
+            // determine distance and direction from the empty cell, opposite to the swipe (move) direction
+            int cellsRowDiff = cellCol - emptyCellCol;  // left = -1, right = 1
+            int cellsColDiff = cellRow - emptyCellRow;  // up = -1, down = 1
+            // if cell is in same group then call movecells to make only one swap in the appropriate direction
+            if (cellRow == emptyCellRow && cellsRowDiff*cellsRowDiff == 1) {  // if cell is left/right of empty
+                MoveCells(1, emptyCellCol, lastCell, cellIndex, cellsRowDiff, cellRows.get(cellRow));
+            }
+            if (cellCol == emptyCellCol && cellsColDiff*cellsColDiff == 1) {  // if cell is up/down of empty
+                MoveCells(1, emptyCellRow, lastCell, cellIndex, cellsColDiff, cellCols.get(cellCol));
+            }
         }
-    }
+    };
 
-    /** called if a swipe in the valid direction occurs on a cell in same row/column of the empty cell
+    /** called if a swipe in the valid direction occurs on a cell in same row/column of the empty cell or if a click
+     registers on any cell other than the empty one
      * swaps cell images and image tags for all cells between that clicked (included) and empty cell
      * lastly calls gridcorrect to check if grid is solved */
-    private void SwipeMoveCells(int groupMoves, int emptyGroupIndex, int lastCell, int gridIndex, int iterateSign,
+    private void MoveCells(int groupMoves, int emptyGroupIndex, int lastCell, int gridIndex, int iterateSign,
                            ArrayList<ImageView> group) {
         // get the empty cell and the adjacent cell in a given group (row/col) then get the tags and image to be swapped
         for (int x = 0; x < groupMoves; x++) {  // incrementally swap cells from empty -> touched, in this order
@@ -306,7 +321,7 @@ public class PuzzleGridTest extends AppCompatActivity {
             emptyTag[1] = swapTag[1];
             // set touched cells new image and tag
             swapCell.setImageDrawable(null);
-            swapTag[1] = lastCell;  // use gridsize - 1 rather than empty cell tag as
+            swapTag[1] = lastCell;  // use gridsize - 1 rather than empty cell tag as it was just changed
             // update empty cell tracker
             emptyCellIndex = gridIndex;
         }
@@ -315,9 +330,8 @@ public class PuzzleGridTest extends AppCompatActivity {
     }
 
     /** Determines if a swiped cell is within the same row or column as the empty cell and if the swipe was
-        in the direction of the empty cell - if so then calls SwipeMoveCells to process the valid swipe */
+        in the direction of the empty cell - if so then calls MoveCells to process the valid swipe */
     private void SwipeCell(View view, int gridCols, int direction) {
-        // TODO: use custom cells instead?
         // obtaining cell image, the row and column lists they are part of and their index in those lists
         int[] cellTag = (int[])view.getTag();
         int gridIndex = cellTag[0];
@@ -336,26 +350,25 @@ public class PuzzleGridTest extends AppCompatActivity {
         switch (direction) {
             case(1):  // right swipe - empty row index > touched row index
                 if (emptyCellRow == cellRow && emptyCellCol > cellCol) {  // cell columns give the index in row
-                    SwipeMoveCells(numRowMoves, emptyCellCol, lastCell, gridIndex,-1, row);
+                    MoveCells(numRowMoves, emptyCellCol, lastCell, gridIndex,-1, row);
                 }
                 break;
             case(2):  // left swipe - empty row index < touched row index
                 if (emptyCellRow == cellRow && emptyCellCol < cellCol) {
-                    SwipeMoveCells(numRowMoves, emptyCellCol, lastCell, gridIndex,1, row);
+                    MoveCells(numRowMoves, emptyCellCol, lastCell, gridIndex,1, row);
                 }
                 break;
             case(3):  // down swipe - empty col index > touched col index
                 if (emptyCellCol == cellCol && emptyCellRow > cellRow) {  // cell rows give the index in column
-                    SwipeMoveCells(numColMoves, emptyCellRow, lastCell, gridIndex,-1, col);
+                    MoveCells(numColMoves, emptyCellRow, lastCell, gridIndex,-1, col);
                 }
                 break;
             case(4):  // up swipe - empty col index < touched col index
                 if (emptyCellCol == cellCol && emptyCellRow < cellRow) {
-                    SwipeMoveCells(numColMoves, emptyCellRow, lastCell, gridIndex,1, col);
+                    MoveCells(numColMoves, emptyCellRow, lastCell, gridIndex,1, col);
                 }
                 break;
         }
-
     }
 
     /** Handle simple touch events as either a swipe (up/down/left/right) or a click - multi touch is not supported.
@@ -366,9 +379,9 @@ public class PuzzleGridTest extends AppCompatActivity {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
             int[] tag = (int[])v.getTag();
-            // consume touch with no action taken if empty cell is swiped
+            // consume touch with no action taken if empty cell is touched
             if (tag[0] == emptyCellIndex) {
-                Log.i(TAG, "emptyCellSwiped");
+                Log.i(TAG, "emptyCellTouched");
                 return true;
             }
 

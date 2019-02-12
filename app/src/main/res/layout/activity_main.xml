@@ -76,22 +76,22 @@
         android:contentDescription="@string/take_pic"
         app:layout_constraintBottom_toTopOf="@+id/photoView"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.762"
+        app:layout_constraintHorizontal_bias="0.695"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/setGrid"
-        app:layout_constraintVertical_bias="0.0"
+        app:layout_constraintVertical_bias="0.888"
         app:srcCompat="@android:drawable/ic_menu_camera" />
 
     <Button
         android:id="@+id/loadButton"
-        android:layout_width="140dp"
+        android:layout_width="105dp"
         android:layout_height="50dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="12dp"
-        android:text="@string/load_pic"
+        android:layout_marginTop="4dp"
+        android:text="@string/start"
         app:layout_constraintEnd_toStartOf="@+id/cameraButton"
-        app:layout_constraintHorizontal_bias="0.932"
+        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView2" />
 
@@ -139,5 +139,19 @@
         app:layout_constraintHorizontal_bias="0.004"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/appTitle" />
+
+    <ToggleButton
+        android:id="@+id/adapterButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="44dp"
+        android:textOff="@string/default_images"
+        android:textOn="@string/gallery_images"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.392"
+        app:layout_constraintStart_toEndOf="@+id/photoView"
+        app:layout_constraintTop_toBottomOf="@+id/cameraButton" />
 
 </android.support.constraint.ConstraintLayout>

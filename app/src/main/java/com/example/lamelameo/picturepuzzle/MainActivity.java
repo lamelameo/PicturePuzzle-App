@@ -25,6 +25,7 @@ import android.widget.*;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
@@ -33,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     private String TAG = "MainActivity";
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
+    private RecyclerView.Adapter mPhotoAdapter;
     private RecyclerView.LayoutManager mlayoutManager;
     private ImageView mCameraView;
     private String mCurrentPhotoPath;
@@ -147,8 +149,27 @@ public class MainActivity extends AppCompatActivity {
         mediaScanIntent.setData(contentUri);
         this.sendBroadcast(mediaScanIntent);
         // directory for gallery images
-        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+//        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         //TODO: get pics from storage to display?
+    }
+
+    private Drawable scalePhoto(int viewSize, String photopath) {
+        // scale image previews to fit the allocated View to save app memory
+        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+        bmOptions.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(photopath, bmOptions);
+        int photoW = bmOptions.outWidth;
+        int photoH = bmOptions.outHeight;
+        int scaleFactor = Math.min(photoW/viewSize, photoH/viewSize);
+        bmOptions.inJustDecodeBounds = false;
+        bmOptions.inSampleSize = scaleFactor;
+
+        // rotate image to correct orientation - default is landscape
+        Matrix matrix = new Matrix();
+        matrix.postRotate(90);
+        Bitmap bitmap = BitmapFactory.decodeFile(photopath, bmOptions);
+        Bitmap scaledBmp = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+        return new BitmapDrawable(getResources(), scaledBmp);
     }
 
     @Override
@@ -188,16 +209,54 @@ public class MainActivity extends AppCompatActivity {
                 R.drawable.dfdfrazer, R.drawable.dfdfsaiki, R.drawable.dfdfmms
         };
 
+        File imageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File[] storedImages = imageDir.listFiles();
+        final ArrayList<Drawable> savedPhotos = new ArrayList<>();
+        float density = getResources().getDisplayMetrics().density;
+        long recyclerViewPx = Math.round(150 * density);
+        for (File file : storedImages) {
+            Log.i(TAG, "onCreate:file "+file.getName());
+            String imagePath = file.getAbsolutePath();
+            Drawable imageBitmap = scalePhoto((int)recyclerViewPx, imagePath);
+//            Drawable drawable = BitmapDrawable.createFromPath(imagePath);
+            savedPhotos.add(imageBitmap);
+            //TODO: have to rotate and scale images, recyclerview is very slow...
+        }
+
+        //TODO: create a fragment to scroll through images including the defaults (at top) and image gallery
+        // add defaults to app pics on create,
+
         mRecyclerView = findViewById(R.id.pictureRecyclerView);
         // improves performance given that view doesnt change size
-        mRecyclerView.setHasFixedSize(true);
+//        mRecyclerView.setHasFixedSize(true);
         // use layout manager -  horizontal orientation = 1, vertical = 0
         mlayoutManager = new LinearLayoutManager(this, 1, false);
         mRecyclerView.setLayoutManager(mlayoutManager);
-        // set adapter
-        mAdapter = new ImageRecyclerAdapter(drawableInts, intent2,this);
-        mRecyclerView.setAdapter(mAdapter);
-        final ImageRecyclerAdapter testAdapter = (ImageRecyclerAdapter)mAdapter;
+        // set adapter to default use default image dataset
+        final ImageRecyclerAdapter testAdapter = new ImageRecyclerAdapter(drawableInts, intent2,this);
+        mAdapter = testAdapter;
+        mRecyclerView.setAdapter(testAdapter);
+
+        // toggle recycler view between default images and photos taken and saved using this app
+        ToggleButton adapterButton = findViewById(R.id.adapterButton);
+        final ImageRecyclerAdapter photoAdapter = new ImageRecyclerAdapter(savedPhotos, intent2, this);
+        mPhotoAdapter = photoAdapter;
+        adapterButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                //TODO: have to update selection upon changing adapters
+                if (isChecked) {
+                    Log.i(TAG, "onCheckedChanged: checked");
+                    mRecyclerView.swapAdapter(photoAdapter, true);
+                    photoAdapter.resetSelection();
+
+                } else {
+                    Log.i(TAG, "onCheckedChanged: unchecked");
+                    mRecyclerView.swapAdapter(testAdapter, true);
+                    testAdapter.resetSelection();
+                }
+            }
+        });
 
         final RadioGroup setGrid = findViewById(R.id.setGrid);
         RadioButton set3 = findViewById(R.id.set3);

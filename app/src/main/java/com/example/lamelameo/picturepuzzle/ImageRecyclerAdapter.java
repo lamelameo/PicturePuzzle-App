@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import static android.content.ContentValues.TAG;
 
 public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdapter.myViewHolder> {
-    private Drawable[] mDataset;
+    private ArrayList<Drawable> mDataset;
     private Intent mIntent;
     private int[] mDrawableInts;
     private Context mContext;
@@ -30,11 +30,20 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
     private int mSelectedHolder;
     private ArrayList<myViewHolder> viewHolders;
 
-    // constructor takes array of drawable images
+    // constructor takes array of drawables resource integers
     public ImageRecyclerAdapter(int[] drawableInts, Intent intent, Context context) {
 //        mDataset = imageDataset;
         mIntent = intent;
         mDrawableInts = drawableInts;
+        mContext = context;
+        mGridRows = 4;
+        viewHolders = new ArrayList<>();
+    }
+
+    // constructor takes arraylist of drawables
+    public ImageRecyclerAdapter(ArrayList<Drawable> images, Intent intent, Context context) {
+        mIntent = intent;
+        mDataset = images;
         mContext = context;
         mGridRows = 4;
         viewHolders = new ArrayList<>();
@@ -46,6 +55,11 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
 
     public int getmSelectedImage() {
         return mSelectedImage;
+    }
+
+    public void resetSelection() {
+        mSelectedHolder = -1;
+        mSelectedImage = -1;
     }
 
     public static class myViewHolder extends RecyclerView.ViewHolder {
@@ -100,8 +114,12 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
     // set image view to corresponding drawable in dataset
     @Override
     public void onBindViewHolder(@NonNull final myViewHolder holder, int position) {
-        // set the image for the item based on the position in adapter...as holders are recycled it will be set each bind
-        holder.mImageView.setImageResource(mDrawableInts[position]);
+        if (mDataset != null) {
+            holder.mImageView.setImageDrawable(mDataset.get(position));
+        } else {
+            // set the image for the item based on the position in adapter...as holders are recycled it will be set each bind
+            holder.mImageView.setImageResource(mDrawableInts[position]);
+        }
 
         // check if the holder being bound is the selected image and keep make it blue else set no background
         // this is needed when scrolling occurs and holders get shuffled
@@ -114,6 +132,10 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
 
     @Override
     public int getItemCount() {
-        return mDrawableInts.length;
+        if (mDataset != null) {
+            return mDataset.size();
+        } else {
+            return mDrawableInts.length;
+        }
     }
 }
