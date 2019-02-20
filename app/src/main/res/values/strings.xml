@@ -9,6 +9,7 @@
     <string name="grid_size">GridSize:</string>
     <string name="default_images">default</string>
     <string name="gallery_images">gallery</string>
+    <string name="highscore">Best Time: \nBest Moves: </string>
     <string name="set3">3</string>
     <string name="set4">4</string>
     <string name="set5">5</string>

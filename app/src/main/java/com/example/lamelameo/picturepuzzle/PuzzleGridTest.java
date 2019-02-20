@@ -1,11 +1,12 @@
 package com.example.lamelameo.picturepuzzle;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.os.SystemClock;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayout;
@@ -15,7 +16,9 @@ import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
+import org.w3c.dom.Text;
 
+import java.io.*;
 import java.util.*;
 
 public class PuzzleGridTest extends AppCompatActivity {
@@ -28,26 +31,24 @@ public class PuzzleGridTest extends AppCompatActivity {
     private VelocityTracker mVelocityTracker = null;
     private float xDown, yDown;
     private int numRows;
+    private int timerCount;
+    private int puzzleNum;
+    private int numMoves;
+    private ArrayList<String> savedDataList = new ArrayList<>();
+    private TextView moveCounter;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_puzzle_grid_test);
 
         final GridLayout puzzleGrid = findViewById(R.id.gridLayout);
-
-        //TODO: create game timer
-//        TimePicker timePicker = new TimePicker(this);
-//        TextClock textClock = new TextClock(this);
-//        // get uptime when timer starts then again every x amount of time?
-//        long time = SystemClock.uptimeMillis();
-//        Timer timer = new Timer();
-////        timer.schedule();
-
         // get number of columns set
         final int numCols = getIntent().getIntExtra("numColumns", 4);
         numRows = numCols;
         int gridSize = puzzleGrid.getLayoutParams().width;
+        // get puzzle number
+        puzzleNum = getIntent().getIntExtra("puzzleNum", 0);
         // get photopath if taken
         String photoPath = getIntent().getStringExtra("photoPath");
 
@@ -121,6 +122,219 @@ public class PuzzleGridTest extends AppCompatActivity {
             }
         }
 
+        //TODO: allow for pausing of game/timer and resuming - can use variables to declare game is paused/stopped
+        //  which can be used by a method which continuously uses the handler to call the runnable until a stop
+
+        TextView bestTimeView = findViewById(R.id.bestTimeView);
+        int[] bestData = puzzleBestData();
+        if (bestData[0] != -1) {
+            int secs = bestData[0] % 60;
+            int mins = bestData[0] / 60;
+            int bestMoves = bestData[1];
+            bestTimeView.setText(String.format(Locale.getDefault(), "Best Time: %02d:%02d\nBest Moves: %d",
+                                 mins, secs, bestMoves));
+        }
+
+        Log.i(TAG, "puzzleDataArray: "+savedDataList);
+        //TODO: movecounter on move cell
+        moveCounter = findViewById(R.id.moveCounter);
+        final TextView timer = findViewById(R.id.gameTimer);
+        // initialise timer count and text
+        timerCount = 0;
+        timer.setText("0");
+        // Create runnable task (calls code in new thread) which increments a counter used as the timers text
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                timerCount += 1;
+                int seconds = timerCount % 60;
+                int minutes = timerCount / 60;  // rounds down the decimal if we use int
+                timer.setText(String.format(Locale.getDefault(), "%d:%02d", minutes, seconds));
+            }
+        };
+
+        // call the runnable every 1 second using a handler - times up to 1 hour
+        Handler handler = new Handler();
+        for (int x=0; x<360; x++) {
+            handler.postDelayed(runnable, x*1000);
+        }
+
+        //TODO: pause function that pauses timer and suspends UI and opens overlay (fragment?) with resume save quit
+        ImageButton pauseButton = findViewById(R.id.pauseButton);
+        pauseButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                savedInstanceState.;
+            }
+        });
+
+    }
+
+    private int[] puzzleBestData() {
+
+        FileInputStream saveTimesFile = null;
+        int[] savedData = {-1, -1};
+        StringBuilder stringBuilder = new StringBuilder();
+        String[] puzzleStrings = {"defaultgrid: ", "carpet: ", "cat: ", "clock: ", "crab: ",
+                "darklights: ", "nendou: ", "razer: ", "saiki: ", "mms: "};
+
+        Log.i(TAG, "puzzleNum: "+puzzleNum);
+        try {  // if file already created, read file and get the relevant time, append lines to an array for easy access
+            saveTimesFile = openFileInput("gametimes");
+            BufferedReader reader = new BufferedReader(new InputStreamReader(saveTimesFile));
+            String line;
+            int currentLine = 0;
+            if (puzzleNum == -1) {
+                //TODO: add support for photos taken by the app...change puzzleNum for these, and add lines in file as needed
+                return savedData;
+            }
+            // loop through lines till we get the puzzle we are looking for and get the saved data from that line
+            while ((line = reader.readLine()) != null) {
+                Log.i(TAG, "lines: " + line);
+                savedDataList.add(line);
+                if (currentLine == puzzleNum) {
+                    int timeStartIndex = line.indexOf(":") + 2;
+                    int timeEndIndex = line.indexOf(",");  // indexOf will give -1 if not found ie no data for the puzzle
+                    Log.i(TAG, "timeStartIndex: "+timeStartIndex);
+                    Log.i(TAG, "timeEndIndex: "+timeEndIndex);
+                    if (timeEndIndex != -1) {  // if there is saved data then get it
+                        savedData[0] = Integer.valueOf(line.substring(timeStartIndex, timeEndIndex));
+                        savedData[1] = Integer.valueOf(line.substring(timeEndIndex+1));
+                        Log.i(TAG, "savedData: "+savedData[0]+","+savedData[1]);
+                    }
+                }
+                currentLine += 1;
+            }
+
+        } catch (Exception readException) {
+            readException.printStackTrace();
+            // create the file if there is none already
+            if (readException instanceof FileNotFoundException) {
+                Log.i(TAG, "made time file ");
+                for (String element : puzzleStrings) {
+                    stringBuilder.append(element).append("\n");
+                    savedDataList.add(element);
+                }
+                // string builder contains a single string separated by newlines with blank save data
+                String fileContents = stringBuilder.toString();
+                // create file containing the string builder string
+                FileOutputStream outputStream = null;
+                try {
+                    outputStream = openFileOutput("gametimes", Context.MODE_PRIVATE);
+                    outputStream.write(fileContents.getBytes());
+                } catch (Exception writeError) {
+                    Log.i(TAG, "write exception: "+writeError);
+                } finally {  //TODO: need finally block to close outputstream?
+                    if (outputStream != null) {
+                        try {
+                            outputStream.close();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+        } finally {  // close the file
+            try {
+                if (saveTimesFile != null) {
+                    saveTimesFile.close();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return savedData;
+    }
+
+    private void saveGameData(int[] gameData) {
+        // Compare the relevant saved puzzle data to the current game data to determine which is lower.
+        // Modify the saved data if the current time or moves are lower than it, or if there is no saved data.
+        //TODO: support for different sized grid times
+
+        String gameTime = Integer.toString(gameData[0]);
+        String gameMoves = Integer.toString(gameData[1]);
+        StringBuilder stringBuilder = new StringBuilder();
+        Log.i(TAG, "puzzleNum: "+puzzleNum);
+
+        if (puzzleNum == -1) {
+            //TODO: add support for photos taken by the app...change puzzleNum for these, and add lines in file as needed
+            return;
+        }
+
+        String savedData = savedDataList.get(puzzleNum);
+        String newData = "";
+        int timeStartIndex = savedData.indexOf(":") + 2;
+        int timeEndIndex = savedData.indexOf(",");
+        String puzzleIdentifier = savedData.substring(0, timeStartIndex);
+        if (timeEndIndex == -1) {  // if there is no saved data then add the game data
+            newData = puzzleIdentifier + gameTime + "," + gameMoves + "\n";
+        } else {  // there is saved data, so check if game time/moves and update if either are lower
+            String timeString = savedData.substring(timeStartIndex, timeEndIndex);
+            String moveString = savedData.substring(timeEndIndex+1);
+            // time and moves are lower than saved values, so update
+            if (gameData[0] < Integer.valueOf(timeString) && gameData[1] < Integer.valueOf(moveString)) {
+                newData = puzzleIdentifier + gameTime + "," + gameMoves + "\n";
+            }  // update time only
+            if (gameData[0] < Integer.valueOf(timeString) && gameData[1] > Integer.valueOf(moveString)) {
+                newData = puzzleIdentifier + gameTime + "," + moveString + "\n";
+            }  // update moves only
+            if (gameData[0] > Integer.valueOf(timeString) && gameData[1] < Integer.valueOf(moveString)) {
+                newData = puzzleIdentifier + timeString + "," + gameMoves + "\n";
+            }
+        }
+        // if newdata is changed, then we have to update the data file
+        if (!newData.equals("")) {
+            // update the relevant item in the data list, with the new string
+            savedDataList.remove(puzzleNum);
+            savedDataList.add(puzzleNum, newData);
+            // use string builder to concatenate all strings
+            for (String element : savedDataList) {
+                stringBuilder.append(element);
+            }
+            String fileContents = stringBuilder.toString();
+            // overwrite the old file to contain the updated data
+            FileOutputStream outputStream = null;
+            try {
+                outputStream = openFileOutput("gametimes", Context.MODE_PRIVATE);
+                outputStream.write(fileContents.getBytes());
+            } catch (Exception writeError) {
+                Log.i(TAG, "write exception: "+writeError);
+            } finally {  //TODO: need finally block to close outputstream?
+                if (outputStream != null) {
+                    try {
+                        outputStream.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+
+    private long elapsedTime(long startTime) {
+        //TODO: have to take into account pauses? onPause should save elapsed time, then onResume should reset
+        // startTimer. Can get total elapsed time by adding them
+        long elapsedTime = System.currentTimeMillis();
+        return System.currentTimeMillis() - startTime;
+    }
+
+    int getEmptyCellIndex() {
+        return emptyCellIndex;
+    }
+
+    int getNumRows()  {
+        return numRows;
+    }
+
+    ArrayList<ImageView> getCellRow(int index) {
+        return cellRows.get(index);
+    }
+
+    ArrayList<ImageView> getCellCol(int index) {
+        return cellCols.get(index);
     }
 
     /** create a list containing cell position indexes (0-14) in a random order which can be used to arrange bitmaps
@@ -204,7 +418,7 @@ public class PuzzleGridTest extends AppCompatActivity {
     }
 
     /** convert density independent pixels to pixels using the devices pixel density */
-    private int dpToPx(float dp) {
+    int dpToPx(float dp) {
         float density = getResources().getDisplayMetrics().density;
         // rounds up/down around 0.5
         long pixels = Math.round(dp * density);
@@ -304,8 +518,8 @@ public class PuzzleGridTest extends AppCompatActivity {
      registers on any cell other than the empty one
      * swaps cell images and image tags for all cells between that clicked (included) and empty cell
      * lastly calls gridcorrect to check if grid is solved */
-    private void MoveCells(int groupMoves, int emptyGroupIndex, int lastCell, int gridIndex, int iterateSign,
-                           ArrayList<ImageView> group) {
+    void MoveCells(int groupMoves, int emptyGroupIndex, int lastCell, int gridIndex, int iterateSign,
+                   ArrayList<ImageView> group) {
         // get the empty cell and the adjacent cell in a given group (row/col) then get the tags and image to be swapped
         for (int x = 0; x < groupMoves; x++) {  // incrementally swap cells from empty -> touched, in this order
             // adjacent cell to be swapped with empty has an index either +/- 1 from empty cells index in the group
@@ -325,13 +539,20 @@ public class PuzzleGridTest extends AppCompatActivity {
             // update empty cell tracker
             emptyCellIndex = gridIndex;
         }
-        // check if grid is solved
-        gridCorrect();
+        // track amount of moves taken and update move counter to display this
+        numMoves += groupMoves;
+        moveCounter.setText(String.valueOf(numMoves));
+        // check if grid is solved, if so then check if the game data was lower than the saved data (if any)
+        int[] gameData = {timerCount, numMoves};
+        if (gridCorrect()) {
+            //TODO: stop game timer (how to?)...open menu on top of UI, make rest unresponsive - fragment?
+            saveGameData(gameData);
+        }
     }
 
     /** Determines if a swiped cell is within the same row or column as the empty cell and if the swipe was
         in the direction of the empty cell - if so then calls MoveCells to process the valid swipe */
-    private void SwipeCell(View view, int gridCols, int direction) {
+    void SwipeCell(View view, int gridCols, int direction) {
         // obtaining cell image, the row and column lists they are part of and their index in those lists
         int[] cellTag = (int[])view.getTag();
         int gridIndex = cellTag[0];

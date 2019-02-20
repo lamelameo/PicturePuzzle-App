@@ -312,16 +312,17 @@ public class MainActivity extends AppCompatActivity {
         loadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                Log.i(TAG, "onClick:path "+mCurrentPhotoPath);
-//                Log.i(TAG, "onClick:photo "+mCameraView.getDrawable());
                 intent2.putExtra("numColumns", mGridRows);  // set extra for grid size
                 // set extra for image to use - check if photo has been taken or use the default numbered image
                 if (mCurrentPhotoPath != null) {  // if taken pic use that
                     intent2.putExtra("photoPath", mCurrentPhotoPath);
+                    intent2.putExtra("puzzleNum", -1);
                 } else {  // get drawable for selected image from recycler view
                     int selectedImage = testAdapter.getmSelectedImage();
-                    if (selectedImage != -1) {  // if none selected send no extra - game defaults to 15 grid
+                    // if there is a selection send the id and puzzle number to the game activity - defaults are 15grid
+                    if (selectedImage != -1) {
                         intent2.putExtra("drawableId", drawableInts[selectedImage]);
+                        intent2.putExtra("puzzleNum", selectedImage);
                     }
 
                     //TODO: how to check if created file contains photo or not?

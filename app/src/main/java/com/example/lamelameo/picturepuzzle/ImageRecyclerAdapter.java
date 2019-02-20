@@ -31,7 +31,7 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
     private ArrayList<myViewHolder> viewHolders;
 
     // constructor takes array of drawables resource integers
-    public ImageRecyclerAdapter(int[] drawableInts, Intent intent, Context context) {
+    ImageRecyclerAdapter(int[] drawableInts, Intent intent, Context context) {
 //        mDataset = imageDataset;
         mIntent = intent;
         mDrawableInts = drawableInts;
@@ -41,7 +41,7 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
     }
 
     // constructor takes arraylist of drawables
-    public ImageRecyclerAdapter(ArrayList<Drawable> images, Intent intent, Context context) {
+    ImageRecyclerAdapter(ArrayList<Drawable> images, Intent intent, Context context) {
         mIntent = intent;
         mDataset = images;
         mContext = context;
@@ -49,20 +49,20 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
         viewHolders = new ArrayList<>();
     }
 
-    public void setmGridRows(int mGridRows) {
+    void setmGridRows(int mGridRows) {
         this.mGridRows = mGridRows;
     }
 
-    public int getmSelectedImage() {
+    int getmSelectedImage() {
         return mSelectedImage;
     }
 
-    public void resetSelection() {
+    void resetSelection() {
         mSelectedHolder = -1;
         mSelectedImage = -1;
     }
 
-    public static class myViewHolder extends RecyclerView.ViewHolder {
+    static class myViewHolder extends RecyclerView.ViewHolder {
         private AppCompatImageView mImageView;
         private ConstraintLayout mPreviewLayout;
         private myViewHolder(ConstraintLayout constraintLayout, AppCompatImageView imageView) {
@@ -114,6 +114,9 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
     // set image view to corresponding drawable in dataset
     @Override
     public void onBindViewHolder(@NonNull final myViewHolder holder, int position) {
+        //TODO: a switch from one adapter for the recyclerview removes the selection,
+        // if the game is started then go back to main then that puzzle becomes default
+
         if (mDataset != null) {
             holder.mImageView.setImageDrawable(mDataset.get(position));
         } else {
