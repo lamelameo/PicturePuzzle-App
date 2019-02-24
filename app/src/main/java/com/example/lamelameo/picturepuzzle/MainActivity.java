@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
                 photoFile = createImageFile();
             } catch (IOException ex) {
                 // error when making file
+                ex.printStackTrace();
             }
 
             if (photoFile != null) {
@@ -97,7 +98,6 @@ public class MainActivity extends AppCompatActivity {
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         File image = File.createTempFile(imageFileName, ".jpg", storageDir);
         mCurrentPhotoPath = image.getAbsolutePath();
-        //TODO: have to delete file if no photo taken... and empty photopath...
         return image;
     }
 
@@ -105,40 +105,25 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         // gets the image taken with camera as a bitmap displayed in an ImageView for a preview
         super.onActivityResult(requestCode, resultCode, data);
-        if  (requestCode == 1 && resultCode == RESULT_OK) {
-//            Bundle extras = data.getExtras();
-//            Bitmap imageBitmap = (Bitmap) extras.get("data");
-//            mCameraView.setImageBitmap(imageBitmap);
-            setPic();
-            addPicGallery();
+        if  (requestCode == 1) {  // result from camera intent
+            if (resultCode == RESULT_OK) {  // got a photo back from camera
+                // create the image preview and add to phones gallery
+                mCameraView.setImageDrawable(scalePhoto(mCameraView.getWidth(), mCurrentPhotoPath));
+                addPicGallery();
+            } else {  // didnt get a return value (no photo)
+                // clear file at photopath or will get errors reopening app as there are empty files with no pic stored
+                try {
+                    boolean deleteTempFile = new File(mCurrentPhotoPath).delete();
+                    Log.i(TAG, "deleted temp photo file: "+deleteTempFile);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Log.i(TAG, "tried to delete temp file on no result camera exit, but got error");
+                }
+                // clear photopath or will get errors trying to access null image in game activity
+                Log.i(TAG, "no photo-resultCode: " + resultCode);
+                mCurrentPhotoPath = null;
+            }
         }
-    }
-
-    private void setPic() {
-        // scale image previews to fit the allocated View to save app memory
-        int targetW = mCameraView.getWidth();
-        int targetH = mCameraView.getHeight();
-
-        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-        bmOptions.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(mCurrentPhotoPath, bmOptions);
-        int photoW = bmOptions.outWidth;
-        int photoH = bmOptions.outHeight;
-//        bmOptions.outWidth = photoH;
-
-        int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
-
-        bmOptions.inJustDecodeBounds = false;
-        bmOptions.inSampleSize = scaleFactor;
-//        bmOptions.inPurgeable = true;
-
-        Matrix matrix = new Matrix();
-        matrix.postRotate(90);
-        Bitmap bitmap = BitmapFactory.decodeFile(mCurrentPhotoPath, bmOptions);
-//        Bitmap scaledBmp = Bitmap.createScaledBitmap(bitmap, photoH, photoH, true);
-        Bitmap rotatedBmp = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-        Drawable drawable = new BitmapDrawable(getResources(), rotatedBmp);
-        mCameraView.setImageDrawable(drawable);
     }
 
     private void addPicGallery() {
@@ -153,6 +138,12 @@ public class MainActivity extends AppCompatActivity {
         //TODO: get pics from storage to display?
     }
 
+    /**
+     * Scale an image to the size of a view, and rotate 90 degrees to obtain the image in portrait orientation
+     * @param viewSize the size of the view for the image to be scaled to
+     * @param photopath the file path of the image to be scaled
+     * @return a Drawable of the given image scaled to a size suitable to fit into the target view
+     */
     private Drawable scalePhoto(int viewSize, String photopath) {
         // scale image previews to fit the allocated View to save app memory
         BitmapFactory.Options bmOptions = new BitmapFactory.Options();
@@ -274,12 +265,14 @@ public class MainActivity extends AppCompatActivity {
         // take a photo from camera and get pic
         mCameraView = findViewById(R.id.photoView);
         ImageButton cameraButton = findViewById(R.id.cameraButton);
-        Intent cameraIntent = new Intent();
         cameraButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // open camera and take photo and send preview to framelayout
                 dispatchTakePictureIntent();
+                //TODO: app crashes and wont reopen if you take no picture and press back and try to start a puzzle
+                // must remove photo path in this case?
+
             }
         });
 

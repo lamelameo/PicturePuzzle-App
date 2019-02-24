@@ -10,16 +10,14 @@
         android:id="@+id/setGrid"
         android:layout_width="206dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:orientation="horizontal"
-        app:layout_constraintBottom_toTopOf="@+id/loadButton"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.851"
+        app:layout_constraintHorizontal_bias="0.845"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/appTitle">
+        app:layout_constraintTop_toBottomOf="@+id/photoView">
 
         <RadioButton
             android:id="@+id/set3"
@@ -69,37 +67,87 @@
         android:id="@+id/cameraButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginEnd="92dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
         android:contentDescription="@string/take_pic"
-        app:layout_constraintBottom_toTopOf="@+id/photoView"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.695"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/setGrid"
-        app:layout_constraintVertical_bias="0.888"
+        app:layout_constraintHorizontal_bias="0.73"
+        app:layout_constraintStart_toEndOf="@+id/photoView"
+        app:layout_constraintTop_toBottomOf="@+id/textView4"
         app:srcCompat="@android:drawable/ic_menu_camera" />
 
     <Button
         android:id="@+id/loadButton"
         android:layout_width="105dp"
         android:layout_height="50dp"
+        android:layout_marginStart="92dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/start"
+        app:layout_constraintBottom_toTopOf="@+id/pictureRecyclerView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/setGrid"
+        app:layout_constraintVertical_bias="0.294" />
+
+    <ImageView
+        android:id="@+id/photoView"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_marginStart="92dp"
+        android:contentDescription="@string/load_pic"
+        android:foreground="@drawable/gridoverlay4"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/appTitle"
+        app:srcCompat="@android:color/darker_gray" />
+
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="113dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:text="@string/grid_size"
+        android:textSize="20sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/photoView" />
+
+    <ToggleButton
+        android:id="@+id/adapterButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="4dp"
-        android:text="@string/start"
-        app:layout_constraintEnd_toStartOf="@+id/cameraButton"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView2" />
+        android:layout_marginTop="8dp"
+        android:textOff="@string/default_images"
+        android:textOn="@string/gallery_images"
+        app:layout_constraintBottom_toTopOf="@+id/pictureRecyclerView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toEndOf="@+id/loadButton"
+        app:layout_constraintTop_toBottomOf="@+id/setGrid"
+        app:layout_constraintVertical_bias="0.333" />
+
+    <TextView
+        android:id="@+id/textView4"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/take_pic"
+        android:textAlignment="center"
+        android:textSize="18sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.12"
+        app:layout_constraintStart_toEndOf="@+id/photoView"
+        app:layout_constraintTop_toBottomOf="@+id/appTitle" />
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/pictureRecyclerView"
         android:layout_width="200dp"
         android:layout_height="240dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="16dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
@@ -108,50 +156,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/photoView"
-        app:layout_constraintVertical_bias="0.227" />
-
-    <ImageView
-        android:id="@+id/photoView"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:contentDescription="@string/load_pic"
-        android:foreground="@drawable/gridoverlay4"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/loadButton"
-        app:srcCompat="@android:color/darker_gray" />
-
-    <TextView
-        android:id="@+id/textView2"
-        android:layout_width="113dp"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="4dp"
-        android:gravity="center"
-        android:text="@string/grid_size"
-        android:textSize="20sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.004"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/appTitle" />
-
-    <ToggleButton
-        android:id="@+id/adapterButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="44dp"
-        android:textOff="@string/default_images"
-        android:textOn="@string/gallery_images"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.392"
-        app:layout_constraintStart_toEndOf="@+id/photoView"
-        app:layout_constraintTop_toBottomOf="@+id/cameraButton" />
+        app:layout_constraintTop_toBottomOf="@+id/textView2"
+        app:layout_constraintVertical_bias="0.95" />
 
 </android.support.constraint.ConstraintLayout>

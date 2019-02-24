@@ -1,17 +1,29 @@
 <resources>
     <string name="app_name">PicturePuzzle</string>
-    <string name="take_pic">Take Picture</string>
+    <string name="take_pic">Take\nPicture</string>
     <string name="load_pic">Load Picture</string>
-    <string name="load">Load Picture</string>
+    <string name="load">Load</string>
     <string name="timer">Timer</string>
-    <string name="pause">pause</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
     <string name="start">Start</string>
+    <string name="new_game">New Puzzle</string>
+    <string name="main_menu">Main Menu</string>
+    <string name="resize">Resize</string>
     <string name="grid_size">GridSize:</string>
-    <string name="default_images">default</string>
-    <string name="gallery_images">gallery</string>
+    <string name="game_paused">Game Paused</string>
+    <string name="default_images">Default</string>
+    <string name="gallery_images">Gallery</string>
+    <string name="test">Move image to fit within square puzzle grid or use arrows.
+                        Use buttons to zoom in or out.</string>
+    <string name="move_arrows">move arrow</string>
     <string name="highscore">Best Time: \nBest Moves: </string>
     <string name="set3">3</string>
     <string name="set4">4</string>
     <string name="set5">5</string>
     <string name="set6">6</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
 </resources>

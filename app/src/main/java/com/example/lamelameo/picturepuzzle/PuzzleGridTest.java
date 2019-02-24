@@ -7,21 +7,20 @@ import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayout;
 import android.util.Log;
-import android.view.MotionEvent;
-import android.view.VelocityTracker;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.*;
 import android.widget.*;
-import org.w3c.dom.Text;
 
 import java.io.*;
 import java.util.*;
 
-public class PuzzleGridTest extends AppCompatActivity {
+public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFragmentInteractionListener {
 
     private ArrayList<Drawable> bitmaps = new ArrayList<>();
     private String TAG = "PuzzleGridTest";
@@ -36,41 +35,43 @@ public class PuzzleGridTest extends AppCompatActivity {
     private int numMoves;
     private ArrayList<String> savedDataList = new ArrayList<>();
     private TextView moveCounter;
+    private boolean gamePaused = false;
+    private Runnable timerRunnable;
+    private Handler timerHandler;
+    private PauseMenu pauseMenu;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_puzzle_grid_test);
 
+        // ~~~ set up the puzzle grid ~~~
+
+        // first get relevant chosen settings from main activity
         final GridLayout puzzleGrid = findViewById(R.id.gridLayout);
-        // get number of columns set
         final int numCols = getIntent().getIntExtra("numColumns", 4);
         numRows = numCols;
         int gridSize = puzzleGrid.getLayoutParams().width;
-        // get puzzle number
         puzzleNum = getIntent().getIntExtra("puzzleNum", 0);
-        // get photopath if taken
         String photoPath = getIntent().getStringExtra("photoPath");
 
-        // create puzzle pieces using the given image and add to bitmaps list
-        if (photoPath == null) {
-            // should give a grid of scaled cells based on the given default square image
+        // create puzzle piece bitmaps using the given image and add to bitmaps list
+        if (photoPath == null) {  // use one of the default images
             int gridBitmap = getIntent().getIntExtra("drawableId", R.drawable.dfdfdefaultgrid);
             Bitmap bmp = BitmapFactory.decodeResource(getResources(), gridBitmap);
-            float imageSize = bmp.getWidth();
+            int imageSize = bmp.getWidth();
             createBitmapGrid(bmp, numCols, numCols, imageSize);
-        } else {
-            //TODO: gives a final grid corresponding to the preview shown on main activity
+        } else {  // have taken a photo - so use it for the image
+            // scales the photo to the puzzle grid and creates the grid (ends up cropping off the bottom)
             final Bitmap bmp2 = scalePhoto(gridSize, photoPath);
             createBitmapGrid(bmp2, numCols, numCols, gridSize);
         }
 
+        // initialise grid settings
         puzzleGrid.setColumnCount(numCols);
         puzzleGrid.setRowCount(numCols);
-        // initialise emptycell index tracker
         emptyCellIndex = numCols*numCols-1;
-        // 300dp width but could get increased or decreased based on screen??
-        int gridWidth = puzzleGrid.getLayoutParams().width;
+        int gridWidth = puzzleGrid.getLayoutParams().width;  //TODO: could change this based on screen?
 
         // initialise lists to hold grid objects
         gridCells = new ArrayList<>();
@@ -84,11 +85,11 @@ public class PuzzleGridTest extends AppCompatActivity {
         // create randomised grid list - contains indexes in random order which can be used to assign bitmaps to cells
         ArrayList<Integer> randomisedGrid = randomiseGrid(numCols);
 
+        // add cells to grid and set their now randomised images
         //TODO: allow for m x n sized grids?
         for (int x=0; x<numCols; x++) {
             for (int y=0; y<numCols; y++) {
                 final int index = x*numCols + y;
-                //TODO: add views to grid - change to custom view: puzzle_view ??
                 ImageView gridCell = new ImageView(this);
                 // set cell size based on size of grid
                 int size = gridWidth/numCols;
@@ -122,9 +123,7 @@ public class PuzzleGridTest extends AppCompatActivity {
             }
         }
 
-        //TODO: allow for pausing of game/timer and resuming - can use variables to declare game is paused/stopped
-        //  which can be used by a method which continuously uses the handler to call the runnable until a stop
-
+        // show the saved best time and move data for the given puzzle
         TextView bestTimeView = findViewById(R.id.bestTimeView);
         int[] bestData = puzzleBestData();
         if (bestData[0] != -1) {
@@ -135,15 +134,15 @@ public class PuzzleGridTest extends AppCompatActivity {
                                  mins, secs, bestMoves));
         }
 
-        Log.i(TAG, "puzzleDataArray: "+savedDataList);
-        //TODO: movecounter on move cell
+        // initialise game timer and its related handler/runnables
         moveCounter = findViewById(R.id.moveCounter);
         final TextView timer = findViewById(R.id.gameTimer);
-        // initialise timer count and text
         timerCount = 0;
         timer.setText("0");
+        // handler allows runnables to be called at delayed time intervals, and to be removed from queue at will
+        timerHandler = new Handler();
         // Create runnable task (calls code in new thread) which increments a counter used as the timers text
-        Runnable runnable = new Runnable() {
+        timerRunnable = new Runnable() {
             @Override
             public void run() {
                 timerCount += 1;
@@ -153,23 +152,121 @@ public class PuzzleGridTest extends AppCompatActivity {
             }
         };
 
-        // call the runnable every 1 second using a handler - times up to 1 hour
-        Handler handler = new Handler();
-        for (int x=0; x<360; x++) {
-            handler.postDelayed(runnable, x*1000);
-        }
-
-        //TODO: pause function that pauses timer and suspends UI and opens overlay (fragment?) with resume save quit
+        // initialise pause button and pause menu fragment
+        pauseMenu = PauseMenu.newInstance();
         ImageButton pauseButton = findViewById(R.id.pauseButton);
         pauseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                savedInstanceState.;
+                // pause the timer and open pause menu
+                pauseTimer();
+                pauseFragment();
             }
         });
 
     }
 
+    @Override
+    public void onClickNewPuzzle() {
+        finish();
+    }
+
+    @Override
+    public void onClickResume() {
+        pauseFragment();
+        startTimer();
+    }
+
+    @Override
+    public void onBackPressed() {
+        // handles back button clicks considering two cases: pause fragment open or closed
+        super.onBackPressed();
+
+        if (gamePaused) {  // fragment is present - remove it, start timer
+            pauseFragment();
+            startTimer();
+            Log.i(TAG, "container not empty ");
+        } else {  // fragment is not open - go back to main activity
+            Log.i(TAG, "container empty");
+            finish();
+        }
+    }
+
+    /**
+     * Handles adding or removing the pause menu fragment from he game activity. If the game is paused when called,
+     * remove fragment and make its container invisible and unclickable. If game is unpaused do the opposite actions.
+     */
+    private void pauseFragment() {
+
+        LinearLayout pauseContainer = findViewById(R.id.pauseContainer);
+        FragmentTransaction fragmentTrans = getSupportFragmentManager().beginTransaction();
+        if (gamePaused) {
+            fragmentTrans.remove(pauseMenu);
+            pauseContainer.setVisibility(View.INVISIBLE);
+            pauseContainer.setClickable(false);
+        } else {
+            fragmentTrans.add(R.id.pauseContainer, pauseMenu);
+            pauseContainer.setVisibility(View.VISIBLE);
+            pauseContainer.setClickable(true);
+        }
+        gamePaused = !gamePaused;
+        fragmentTrans.addToBackStack(null);  //TODO: needed?
+        fragmentTrans.commit();
+    }
+
+    /**
+     * A method to post delayed runnable tasks which increment the timer by 1 every 1000ms.
+     */
+    private void startTimer() {
+        // call the runnable every 1 second using a handler - times up to 1 hour
+        for (int x=0; x<360; x++) {
+            timerHandler.postDelayed(timerRunnable, x*1000);
+        }
+    }
+
+    /**
+     * Method to stop the game timer by removing the runnable calls from the stack which are responsible for timing.
+     */
+    private void pauseTimer() {
+        timerHandler.removeCallbacks(timerRunnable);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        pauseTimer();
+        Log.i(TAG, "onPause: ");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        startTimer();
+        Log.i(TAG, "onResume: ");
+    }
+
+    int getEmptyCellIndex() {
+        return emptyCellIndex;
+    }
+
+    int getNumRows()  {
+        return numRows;
+    }
+
+    ArrayList<ImageView> getCellRow(int index) {
+        return cellRows.get(index);
+    }
+
+    ArrayList<ImageView> getCellCol(int index) {
+        return cellCols.get(index);
+    }
+
+    /** Called anytime the game activity is created - on the first occasion it creates a file in the apps directory
+     * to save the following game data: lowest amount of time and moves taken to complete each puzzle
+     * If the file has already been created, then search the file for the saved data for the current puzzle and return it
+     * (if any) else return placeholder values to signify no data is available
+     * @return an array[2] containing an int for both the saved time and moves data
+     */
     private int[] puzzleBestData() {
 
         FileInputStream saveTimesFile = null;
@@ -248,9 +345,12 @@ public class PuzzleGridTest extends AppCompatActivity {
         return savedData;
     }
 
+    /** Called when a puzzle is successfully solved, compares the time and moves taken to complete the puzzle
+     *  to the saved data for the lowest value of each of these taken to complete the same puzzle (if any)
+     *  updates the saved data file if either (or both) value(s) for the completed puzzle is lower than the saved data
+     * @param gameData array[2] containing an int for the amount of time (seconds) and moves to complete the puzzle
+     */
     private void saveGameData(int[] gameData) {
-        // Compare the relevant saved puzzle data to the current game data to determine which is lower.
-        // Modify the saved data if the current time or moves are lower than it, or if there is no saved data.
         //TODO: support for different sized grid times
 
         String gameTime = Integer.toString(gameData[0]);
@@ -313,33 +413,11 @@ public class PuzzleGridTest extends AppCompatActivity {
         }
     }
 
-
-    private long elapsedTime(long startTime) {
-        //TODO: have to take into account pauses? onPause should save elapsed time, then onResume should reset
-        // startTimer. Can get total elapsed time by adding them
-        long elapsedTime = System.currentTimeMillis();
-        return System.currentTimeMillis() - startTime;
-    }
-
-    int getEmptyCellIndex() {
-        return emptyCellIndex;
-    }
-
-    int getNumRows()  {
-        return numRows;
-    }
-
-    ArrayList<ImageView> getCellRow(int index) {
-        return cellRows.get(index);
-    }
-
-    ArrayList<ImageView> getCellCol(int index) {
-        return cellCols.get(index);
-    }
-
     /** create a list containing cell position indexes (0-14) in a random order which can be used to arrange bitmaps
      in the grid in this randomised order.
-     * This order of cells checked for its solvability and returns the list if it is, or repeats the process if not */
+     * This order of cells checked for its solvability and returns the list if it is, or repeats the process if not
+     * @param numCols number of columns in the puzzle grid
+     */
     private ArrayList<Integer> randomiseGrid(int numCols) {
         // creates a randomised grid that is guaranteed to be solvable - empty cell is always bottom right
         Random random = new Random();
@@ -348,10 +426,6 @@ public class PuzzleGridTest extends AppCompatActivity {
         int gridSize = numCols*numCols;
         // list of ascending values from 0 - size of grid used for tracking values tested for inversions
         ArrayList<Integer> unTestedValues = new ArrayList<>();
-
-        // TODO: slow algorithm? test how fast it runs and change it if needed - takes 3ms for 1 while loop
-        //  50% of states are solvable but we fix last cell? => x(1 + 1 + (n-1)(3) + n(2 + 6) + 1 + (n-1)(3 + n(6)/2) + 1 + 1)
-        //     what % chance solvable? determines x                                       [n for sum nat nums = gridsize-1]
 
         while (true) {  // create randomised grid in while loop and only break if
             // initialise variables for start of each loop
@@ -392,7 +466,7 @@ public class PuzzleGridTest extends AppCompatActivity {
                 }
             }
 
-            //TODO: alternate method to count inversions, faster or slower?
+            //TODO: alternate method to count inversions, faster or slower? above is n(n-1)/2 for n size grid (sum nat nums)
             // logn for search, n for remove, but n decreases each loop
 
 //            // index of the current value being tested in the ordered values = how many lesser values have a greater
@@ -417,7 +491,9 @@ public class PuzzleGridTest extends AppCompatActivity {
         return randomisedGrid;
     }
 
-    /** convert density independent pixels to pixels using the devices pixel density */
+    /** convert density independent pixels to pixels using the devices pixel density
+     * @param dp amount to be converted from dp to px
+     */
     int dpToPx(float dp) {
         float density = getResources().getDisplayMetrics().density;
         // rounds up/down around 0.5
@@ -425,9 +501,12 @@ public class PuzzleGridTest extends AppCompatActivity {
         return (int) pixels;
     }
 
-    /** Scale an image given a @photopath to a specific views size, @viewSize and return as a Bitmap
+    /** Scale an image from a file path to a specific views size, and return as a Bitmap
      * Intended to be used for photos taken with a camera intent so images are by default in landscape
-     * Therefore images are also rotated 90 degrees */
+     * Therefore images are also rotated 90 degrees
+     * @param viewSize size of the (pixels) view that the image is intended to be placed into
+     * @param photopath file path of the image to be scaled
+     */
     private Bitmap scalePhoto(int viewSize, String photopath) {
         // scale image previews to fit the allocated View to save app memory
         BitmapFactory.Options bmOptions = new BitmapFactory.Options();
@@ -446,10 +525,16 @@ public class PuzzleGridTest extends AppCompatActivity {
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 
-    /** create the grid of smaller cell bitmaps using the chosen image and grid size and add them to the bitmaps list */
-    private void createBitmapGrid(Bitmap bmp, int rows, int columns, float imageSize) {
+
+    /** create the grid of smaller cell bitmaps using the chosen image and grid size and add them to the bitmaps list
+     * @param bmp bitmap image to be used to create grid of images for the puzzle
+     * @param rows number of rows to split the grid into
+     * @param columns number of columns to split the grid into
+     * @param imageSize size of the bitmap image (in pixels)
+     */
+    private void createBitmapGrid(Bitmap bmp, int rows, int columns, int imageSize) {
         // determine cell size in pixels from the image size and set amount of rows/cols
-        float cellSize = imageSize/rows;
+        int cellSize = imageSize/rows;
         // for each row loop 4 times creating a new cropped image from original bitmap and add to adapter dataset
         for(int x=0; x<columns; x++) {
             // for each row, increment y value to start the bitmap at

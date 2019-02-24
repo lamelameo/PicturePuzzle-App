@@ -18,8 +18,6 @@ import android.widget.*;
 
 import java.util.ArrayList;
 
-import static android.content.ContentValues.TAG;
-
 public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdapter.myViewHolder> {
     private ArrayList<Drawable> mDataset;
     private Intent mIntent;
