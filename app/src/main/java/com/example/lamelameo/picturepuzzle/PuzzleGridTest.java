@@ -6,12 +6,9 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.os.Handler;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
+import android.os.*;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.support.v7.widget.GridLayout;
 import android.util.Log;
 import android.view.*;
@@ -19,6 +16,7 @@ import android.widget.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFragmentInteractionListener {
 
@@ -37,9 +35,12 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     private TextView moveCounter;
     private boolean gamePaused = false;
     private Runnable timerRunnable;
-    private Handler timerHandler;
     private PauseMenu pauseMenu;
 
+    /**
+     *
+     * @param savedInstanceState
+     */
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -105,8 +106,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                 if (index == bitmaps.size() - 1) {  // leave last cell with no image
                     int[] cellTag = {index, index};
                     gridCell.setTag(cellTag);
-                    // set all other cells with a randomised image excluding the last cells image as it must be empty
-                } else {  //
+                } else {  // set all other cells with a randomised image excluding the last cells image as it must be empty
                     int rngBitmapIndex = randomisedGrid.get(index);
                     // set the cells starting image
                     gridCell.setImageDrawable(bitmaps.get(rngBitmapIndex));
@@ -134,21 +134,21 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                                  mins, secs, bestMoves));
         }
 
-        // initialise game timer and its related handler/runnables
+        // initialise game timer and its runnable
         moveCounter = findViewById(R.id.moveCounter);
         final TextView timer = findViewById(R.id.gameTimer);
         timerCount = 0;
-        timer.setText("0");
-        // handler allows runnables to be called at delayed time intervals, and to be removed from queue at will
-        timerHandler = new Handler();
         // Create runnable task (calls code in new thread) which increments a counter used as the timers text
         timerRunnable = new Runnable() {
             @Override
             public void run() {
+                // update timer every second, keeping track of current system time
+                // this way we can resume the timer after a pause mid tick, keeping accurate time
+                prevTickTime = SystemClock.uptimeMillis();
                 timerCount += 1;
                 int seconds = timerCount % 60;
                 int minutes = timerCount / 60;  // rounds down the decimal if we use int
-                timer.setText(String.format(Locale.getDefault(), "%d:%02d", minutes, seconds));
+                timer.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
             }
         };
 
@@ -158,33 +158,53 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         pauseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // pause the timer and open pause menu
-                pauseTimer();
-                pauseFragment();
+                // pause the timer and open pause menu if game has started
+                if (timerCount != 0) {
+                    pauseTimer();
+                    pauseFragment();
+                } else {
+                    String toastText = "You have not started the puzzle!";
+                    Toast toast = Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_SHORT);
+                    toast.show();
+                }
+
             }
         });
 
     }
 
+    /**
+     *
+     */
     @Override
     public void onClickNewPuzzle() {
         finish();
     }
 
+    /**
+     *
+     */
     @Override
     public void onClickResume() {
         pauseFragment();
-        startTimer();
+        if (timerCount != 0) {  // resume timer only if it has been started already
+            startTimer();
+        }
     }
 
+    /**
+     *
+     */
     @Override
     public void onBackPressed() {
         // handles back button clicks considering two cases: pause fragment open or closed
         super.onBackPressed();
 
-        if (gamePaused) {  // fragment is present - remove it, start timer
+        if (gamePaused) {  // fragment is present - remove it, start timer if game started
             pauseFragment();
-            startTimer();
+            if (timerCount != 0) {
+                startTimer();
+            }
             Log.i(TAG, "container not empty ");
         } else {  // fragment is not open - go back to main activity
             Log.i(TAG, "container empty");
@@ -214,34 +234,82 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         fragmentTrans.commit();
     }
 
+    private long startTime;
+    private long tickRemainder = 0;
+    private long prevTickTime = 0;
+
+    private ScheduledThreadPoolExecutor timerExecutor = new ScheduledThreadPoolExecutor(1);
+    private ScheduledFuture<?> timerFuture;
+
     /**
-     * A method to post delayed runnable tasks which increment the timer by 1 every 1000ms.
+     * A method to post a delayed runnable task every 1000 ms which updates the timer TextView by 1 second.
+     * ScheduledThreadPoolExecutor is used to schedule the runnables in an indefinite sequence which is cancelled
+     * upon game pause or finish. The first runnable starts after a delay value given by {@link #tickRemainder} which
+     * is 0 upon first starting the game, or the remaining time until the next tick, calculated after a game pause.
      */
     private void startTimer() {
-        // call the runnable every 1 second using a handler - times up to 1 hour
-        for (int x=0; x<360; x++) {
-            timerHandler.postDelayed(timerRunnable, x*1000);
+        // save the system time for clock start to determine the delay for resumes
+        startTime = SystemClock.uptimeMillis() + tickRemainder;
+        Log.i(TAG, "time till next tick: "+tickRemainder);
+        // start runnable with a delay of 1 second, with initial delay as remaining milliseconds to complete the tick before pause
+        timerFuture = timerExecutor.scheduleAtFixedRate(timerRunnable, tickRemainder, 1000, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Method to stop the game timer by cancelling the sequence of delayed runnable tasks created using a
+     * ScheduledThreadPoolExecutor which are responsible for incrementing the timer and updating the TextView.
+     * The time remaining until the next timer tick is calculated and stored as {@link #tickRemainder} to be used
+     * as the first delay for the timer if it is resumed, to keep the timer accurate. This is calculated from the system
+     * time at the previous tick stored in {@link #prevTickTime} each clock tick and the current system time upon call.
+     */
+    private void pauseTimer() {
+        // determine how close to next timer tick (next second) we are (in milliseconds)
+        long pauseTime = SystemClock.uptimeMillis();
+        long elapsedSincePrevTick = pauseTime - prevTickTime;
+        tickRemainder = 1000 - elapsedSincePrevTick;
+        // convert to string to take only last 3 integer values (take sub second values)
+        long elapsedTime = pauseTime - startTime;
+        String remainderStr = String.valueOf(elapsedTime);
+        String remainderHundreds = remainderStr.substring(remainderStr.length() - 3);
+        long remainder = 1000 - Integer.valueOf(remainderHundreds);
+
+        Log.i(TAG, "startTime: "+startTime+" pauseTime: "+pauseTime+" elapsed: "+ elapsedTime);
+        Log.i(TAG, "remainderHunds: "+remainderHundreds+" remainder: "+remainder);
+        Log.i(TAG, "timeSinceLastTick: "+elapsedSincePrevTick+" remainderToNext: "+tickRemainder);
+
+        // stop scheduled tasks
+        if (timerFuture != null) {
+            timerFuture.cancel(false);
         }
     }
 
     /**
-     * Method to stop the game timer by removing the runnable calls from the stack which are responsible for timing.
+     * Pauses the game timer if the game has been started but the pause menu is not open. If either of these conditions
+     * are not met, do not call {@link #pauseTimer()} as class variables are updated in this method which affect the timer.
+     * Used for instances where the app loses focus on the device but the user did not manually pause the game.
      */
-    private void pauseTimer() {
-        timerHandler.removeCallbacks(timerRunnable);
-    }
-
     @Override
     protected void onPause() {
         super.onPause();
-        pauseTimer();
+        // pause the game timer if it is currently running
+        if (!gamePaused && timerCount != 0) {
+            pauseTimer();
+        }
+
         Log.i(TAG, "onPause: ");
     }
 
+    /**
+     * Open the pause UI if onPause was called while the game was running. Used for instances such as app moving to background
+     * without the user manually pausing. Take no action if the timer had not started, or game was paused already.
+     */
     @Override
     protected void onResume() {
         super.onResume();
-        startTimer();
+        // automatically open pause fragment if the game was running when onPause was called
+        if (timerCount != 0 && !gamePaused) {
+            pauseFragment();
+        }
         Log.i(TAG, "onResume: ");
     }
 
@@ -261,7 +329,8 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         return cellCols.get(index);
     }
 
-    /** Called anytime the game activity is created - on the first occasion it creates a file in the apps directory
+    /**
+     * Called anytime the game activity is created - on the first occasion it creates a file in the apps directory
      * to save the following game data: lowest amount of time and moves taken to complete each puzzle
      * If the file has already been created, then search the file for the saved data for the current puzzle and return it
      * (if any) else return placeholder values to signify no data is available
@@ -345,7 +414,8 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         return savedData;
     }
 
-    /** Called when a puzzle is successfully solved, compares the time and moves taken to complete the puzzle
+    /**
+     * Called when a puzzle is successfully solved, compares the time and moves taken to complete the puzzle
      *  to the saved data for the lowest value of each of these taken to complete the same puzzle (if any)
      *  updates the saved data file if either (or both) value(s) for the completed puzzle is lower than the saved data
      * @param gameData array[2] containing an int for the amount of time (seconds) and moves to complete the puzzle
@@ -413,9 +483,10 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         }
     }
 
-    /** create a list containing cell position indexes (0-14) in a random order which can be used to arrange bitmaps
-     in the grid in this randomised order.
-     * This order of cells checked for its solvability and returns the list if it is, or repeats the process if not
+    /**
+     * Create a list containing cell position indexes (0-14) in a random order which can be used to arrange bitmaps
+     * in the grid in this randomised order. This order of cells is checked for its solvability and returns the list
+     * if it is, or repeats the process if not (ie. repeats until it is a solvable grid order).
      * @param numCols number of columns in the puzzle grid
      */
     private ArrayList<Integer> randomiseGrid(int numCols) {
@@ -425,7 +496,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         ArrayList<Integer> posPool = new ArrayList<>();
         int gridSize = numCols*numCols;
         // list of ascending values from 0 - size of grid used for tracking values tested for inversions
-        ArrayList<Integer> unTestedValues = new ArrayList<>();
+//        ArrayList<Integer> unTestedValues = new ArrayList<>();
 
         while (true) {  // create randomised grid in while loop and only break if
             // initialise variables for start of each loop
@@ -437,7 +508,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
 
             // randomise grid and create list with outcome
             for (int x=0; x<gridSize; x++) {
-                unTestedValues.add(x);
+//                unTestedValues.add(x);
                 if (x == gridSize-1) {  // add last index to last in list to ensure it is empty
                     randomisedGrid.add(gridSize-1);
                 } else {
@@ -491,8 +562,10 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         return randomisedGrid;
     }
 
-    /** convert density independent pixels to pixels using the devices pixel density
+    /**
+     * convert density independent pixels to pixels using the device's pixel density
      * @param dp amount to be converted from dp to px
+     * @return the value converted to units of pixels as an integer (rounds down)
      */
     int dpToPx(float dp) {
         float density = getResources().getDisplayMetrics().density;
@@ -501,11 +574,13 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         return (int) pixels;
     }
 
-    /** Scale an image from a file path to a specific views size, and return as a Bitmap
+    /**
+     * Scale an image from a file path to a specific views size, and return as a Bitmap
      * Intended to be used for photos taken with a camera intent so images are by default in landscape
      * Therefore images are also rotated 90 degrees
      * @param viewSize size of the (pixels) view that the image is intended to be placed into
      * @param photopath file path of the image to be scaled
+     * @return the scaled and rotated image as a Bitmap object
      */
     private Bitmap scalePhoto(int viewSize, String photopath) {
         // scale image previews to fit the allocated View to save app memory
@@ -526,7 +601,8 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     }
 
 
-    /** create the grid of smaller cell bitmaps using the chosen image and grid size and add them to the bitmaps list
+    /**
+     * create the grid of smaller cell bitmaps using the chosen image and grid size and add them to the bitmaps list
      * @param bmp bitmap image to be used to create grid of images for the puzzle
      * @param rows number of rows to split the grid into
      * @param columns number of columns to split the grid into
@@ -550,30 +626,31 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         }
     }
 
-    /** determine if grid is solved by iterating through all cells to check if the cell position matches the set image
-     cell tag[0] gives position, tag[1] is the image index, if they are the same then image is in correct cell
-     displays a Toast message if the grid is solved */
-    private boolean gridCorrect() {
-        // TODO: left as boolean as can use the value for stopping the game and adding the last cell as animation
+    /**
+     * Determine if grid is solved by iterating through all cells to check if the cell position matches the set image
+     * cell tag[0] gives position, tag[1] is the image index, if they are the same then image is in correct cell
+     * displays a Toast message if the grid is solved
+     * @return a boolean which indicates whether the grid is solved or not
+     */
+    private boolean gridSolved() {
         // get grid size and iterate through all cells
         int numCells = gridCells.size();
         for (int x=0; x<numCells; x++) {
             // get the tags of each cell in the grid
             int[] cellTag = (int[])gridCells.get(x).getTag();
-            Log.i(TAG, "gridCorrectCell: "+x+" tag: "+cellTag[1]);
+            Log.i(TAG, "gridSolvedCell: "+x+" tag: "+cellTag[1]);
             if (cellTag[0] != cellTag[1]) {
                 return false;
             }
         }
-        // emoticons: 😃 😁 😄 😎 😊 ☻ 👍 🖒 ☜ ☞
-        Toast gameWin = Toast.makeText(getApplicationContext(), "Correct \uD83D\uDE0E", Toast.LENGTH_LONG);
-        gameWin.show();
         return true;
     }
 
-    /** Handle single clicks on any cell other than the empty cell - these are filtered out in the touchListener
-     * checks if the clicked cell is a direct neighbour of the empty cell
-     * if so then calls MoveCells to handle movement of images/tags and checking if grid is solved */
+    /**
+     * Handle single clicks on any cell other than the empty cell - these are filtered out in the touchListener.
+     * Checks if the clicked cell is a direct neighbour of the empty cell.
+     * If so then calls {@link #MoveCells} to handle movement of images/tags and checking if grid is solved.
+     */
     private View.OnClickListener cellClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -599,12 +676,96 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         }
     };
 
-    /** called if a swipe in the valid direction occurs on a cell in same row/column of the empty cell or if a click
-     registers on any cell other than the empty one
-     * swaps cell images and image tags for all cells between that clicked (included) and empty cell
-     * lastly calls gridcorrect to check if grid is solved */
+    /**
+     * Called when puzzle is solved, it makes a screen wide layout clickable and visible to render the game UI frozen
+     * and inflates a new layout UI into this. This overlay UI shows the game and saved data for the puzzle and contains
+     * buttons to allow the user to navigate back to the main activity or restart the current puzzle.
+     * @param gameData an array containing the time and moves data for the completed puzzle.
+     */
+    private void solvedPuzzleUI(int[] gameData) {
+        // inflates a layout into the pause fragment container and makes the game activity unclickable
+        final LinearLayout pauseContainer = findViewById(R.id.pauseContainer);
+        LayoutInflater inflater = getLayoutInflater();
+        inflater.inflate(R.layout.puzzle_solved_ui, pauseContainer, true);
+        pauseContainer.setClickable(true);
+        pauseContainer.setVisibility(View.VISIBLE);
+
+        // set variables for the UI widgets
+        TextView bestsView = findViewById(R.id.puzzleBests);
+        TextView puzzleDataView = findViewById(R.id.puzzleDataView);
+        Button retryButton = findViewById(R.id.retryButton);
+        Button newButton = findViewById(R.id.newButton);
+
+        //set onclick listeners for the UI buttons
+        retryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //TODO: randomise grid or reset to starting state?
+                recreate();
+
+                // reset puzzle grid
+
+//                // remove completion overlay
+//                pauseContainer.setClickable(false);
+//                pauseContainer.setVisibility(View.INVISIBLE);
+//                // reset timer and move counter
+//                timerCount = 0;
+//                numMoves = 0;
+//                startTimer();
+//                pauseContainer.removeAllViews();
+
+            }
+        });
+        newButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
+        // set text to be displayed - message, game data, and saved data
+        String bestSecs;
+        String bestMins;
+        String bestMoves;
+        int[] savedData = puzzleBestData();
+        if (savedData[0] == -1) {
+            bestSecs = "";
+            bestMins = "";
+            bestMoves = "";
+        } else {
+            bestSecs = String.valueOf(savedData[0] % 60);
+            bestMins = String.valueOf(savedData[0] / 60);
+            bestMoves = String.valueOf(savedData[1]);
+        }
+        int puzzleSecs = gameData[0] % 60;
+        int puzzleMins = gameData[0] / 60;
+        // emoticons: 😃 😁 😄 😎 😊 ☻ 👍 🖒 ☜ ☞
+        puzzleDataView.setText(String.format(Locale.getDefault(), "Puzzle Solved \uD83D\uDE0E \n" +
+                        " %02d m : %02d s\n %d moves",
+                puzzleMins, puzzleSecs, gameData[1]));
+        bestsView.setText(String.format(Locale.getDefault(), " Best Time: %s m : %s s \n Best Moves: %s",
+                bestMins, bestSecs, bestMoves));
+    }
+
+    /**
+     * Called if a swipe in the valid direction occurs on a cell in the same group (row/column) of the empty cell or
+     if a click occurs on a direct neighbour of the empty cell. Consecutively swaps the cell image and image tag for the
+     empty cell with each cell in the group up to, and including, the touched cell. In effect, this shifts all cells from
+     that touched until the empty cell by one grid position, leaving the empty cell in the touched cells original position.
+     After this, the amount of moves for the puzzle is updated and {@link #gridSolved} is called to check if grid is solved.
+     * @param groupMoves the amount of cell moves to handle with this call; minimum = 1, maximum = 5
+     * @param emptyGroupIndex the index of the empty cell within the group that the touched cell is also an element
+     * @param lastCell the index in the puzzle grid of the last cell
+     * @param gridIndex the index of the touched cell within the puzzle grid
+     * @param iterateSign value of +/- 1, used to iterate through the group in the correct direction depending on the swipe
+     * @param group an array corresponding to a row or column of the puzzle grid, containing the cell ImageViews in that group
+     */
     void MoveCells(int groupMoves, int emptyGroupIndex, int lastCell, int gridIndex, int iterateSign,
                    ArrayList<ImageView> group) {
+        // start game timer on first move
+        if (timerCount == 0) {
+            startTimer();
+        }
         // get the empty cell and the adjacent cell in a given group (row/col) then get the tags and image to be swapped
         for (int x = 0; x < groupMoves; x++) {  // incrementally swap cells from empty -> touched, in this order
             // adjacent cell to be swapped with empty has an index either +/- 1 from empty cells index in the group
@@ -621,22 +782,29 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
             // set touched cells new image and tag
             swapCell.setImageDrawable(null);
             swapTag[1] = lastCell;  // use gridsize - 1 rather than empty cell tag as it was just changed
-            // update empty cell tracker
-            emptyCellIndex = gridIndex;
         }
+        // update empty cell tracker to correspond to the new empty cell
+        emptyCellIndex = gridIndex;
         // track amount of moves taken and update move counter to display this
         numMoves += groupMoves;
         moveCounter.setText(String.valueOf(numMoves));
         // check if grid is solved, if so then check if the game data was lower than the saved data (if any)
         int[] gameData = {timerCount, numMoves};
-        if (gridCorrect()) {
-            //TODO: stop game timer (how to?)...open menu on top of UI, make rest unresponsive - fragment?
+        if (gridSolved()) {
+            pauseTimer();
+            //TODO: animation or wait between UI popup?
+            solvedPuzzleUI(gameData);
             saveGameData(gameData);
         }
     }
 
-    /** Determines if a swiped cell is within the same row or column as the empty cell and if the swipe was
-        in the direction of the empty cell - if so then calls MoveCells to process the valid swipe */
+    /**
+     * Determines if a swiped cell is within the same row or column as the empty cell and if the swipe was
+     * in the direction of the empty cell - if so then calls {@link #MoveCells} to process the valid swipe
+     * @param view the swiped cell's view object
+     * @param gridCols the amount of columns in the puzzle grid
+     * @param direction the direction of the swipe: right = 1, left = 2, down = 3, up = 4
+     */
     void SwipeCell(View view, int gridCols, int direction) {
         // obtaining cell image, the row and column lists they are part of and their index in those lists
         int[] cellTag = (int[])view.getTag();
@@ -677,7 +845,8 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         }
     }
 
-    /** Handle simple touch events as either a swipe (up/down/left/right) or a click - multi touch is not supported.
+    /**
+     * Handle simple touch events as either a swipe (up/down/left/right) or a click - multi touch is not supported.
      * Swipe direction is determined by distance travelled in the x/y planes between touch/release and its release velocity.
      * Distance and velocity must be greater than @DISTANCE_THRESHOLD and @VELOCITY_THRESHOLD, respectively, to be valid.
      * An event that doesn't fit any of the set criteria is considered a click and handed to the onClick listener. */

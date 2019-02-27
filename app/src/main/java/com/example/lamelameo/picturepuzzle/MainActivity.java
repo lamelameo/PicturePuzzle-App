@@ -270,8 +270,6 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 // open camera and take photo and send preview to framelayout
                 dispatchTakePictureIntent();
-                //TODO: app crashes and wont reopen if you take no picture and press back and try to start a puzzle
-                // must remove photo path in this case?
 
             }
         });
@@ -317,11 +315,7 @@ public class MainActivity extends AppCompatActivity {
                         intent2.putExtra("drawableId", drawableInts[selectedImage]);
                         intent2.putExtra("puzzleNum", selectedImage);
                     }
-
-                    //TODO: how to check if created file contains photo or not?
-//                    deleteFile(mCurrentPhotoPath);
                 }
-//                intent2.putExtra("photoPath", mCurrentPhotoPath);
                 startActivity(intent2);  // start game activity
             }
         });
