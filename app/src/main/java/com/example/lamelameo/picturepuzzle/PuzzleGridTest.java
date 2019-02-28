@@ -57,7 +57,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         String photoPath = getIntent().getStringExtra("photoPath");
 
         // create puzzle piece bitmaps using the given image and add to bitmaps list
-        if (photoPath == null) {  // use one of the default images
+        if (photoPath == null) {  // no photo taken, so use the selected app image, or appropriate default image
             int gridBitmap = getIntent().getIntExtra("drawableId", R.drawable.dfdfdefaultgrid);
             Bitmap bmp = BitmapFactory.decodeResource(getResources(), gridBitmap);
             int imageSize = bmp.getWidth();
@@ -174,7 +174,8 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     }
 
     /**
-     *
+     * Called if user clicks New Puzzle button in pause UI. Finish activity to move back to the main activity,
+     * to let the user choose a new puzzle.
      */
     @Override
     public void onClickNewPuzzle() {
@@ -182,7 +183,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     }
 
     /**
-     *
+     * Called if user clicks Resume button in pause UI. Removes the pause fragment UI and resumes the game timer.
      */
     @Override
     public void onClickResume() {
@@ -193,13 +194,13 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     }
 
     /**
-     *
+     * Handles device back button presses considering two cases: pause fragment open or closed. If open, closes the
+     * the fragment and resumes the game timer. If closed, the game UI is open, so finish this activity, to navigate
+     * back to the main activity.
      */
     @Override
     public void onBackPressed() {
-        // handles back button clicks considering two cases: pause fragment open or closed
         super.onBackPressed();
-
         if (gamePaused) {  // fragment is present - remove it, start timer if game started
             pauseFragment();
             if (timerCount != 0) {

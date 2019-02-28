@@ -8,17 +8,13 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.constraint.ConstraintLayout;
 import android.support.v4.content.FileProvider;
-import android.support.v4.widget.ImageViewCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.*;
 
@@ -41,57 +37,35 @@ public class MainActivity extends AppCompatActivity {
 //    private Drawable[] puzzleImages;
     private int mGridRows;
 
-    @Nullable
-    private Integer checkRBs(RadioButton[] radioButtons) {
-        // iterate through array to check if any button is checked, then return that items tag, else return null
-        for(RadioButton element : radioButtons) {
-            if(element.isChecked()) {
-                return (int)element.getTag();
-            }
-        }
-        return null;
-    }
-
-    //TODO: testing camera properties
-//    public static Camera getCameraInstance(Context context) {
-//        CameraManager cameraManager = (CameraManager)context.getSystemService(CAMERA_SERVICE);
-//        try {
-//            for (String cameraId : cameraManager.getCameraIdList()) {
-//                CameraCharacteristics chars = cameraManager.getCameraCharacteristics(cameraId);
-//                chars.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-//                CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE = new Rect(0,0,0,0);
-//                StreamConfigurationMap;
-//                CaptureRequest.SCALER_CROP_REGION;
-//
-//            }
-//        } catch (CameraAccessException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
+    /**
+     * Creates and invokes an Intent to take a photo using the camera
+     */
     private void dispatchTakePictureIntent() {
-        // invokes intent to take a photo using the camera
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // Check there is a camera activity
         if (cameraIntent.resolveActivity(getPackageManager()) != null) {
+            // Create a File to save the photo into
             File photoFile = null;
             try {
                 photoFile = createImageFile();
-            } catch (IOException ex) {
-                // error when making file
+            } catch (IOException ex) {  // error when making file
                 ex.printStackTrace();
             }
-
+            // if successful in creating File, save the photo into it
             if (photoFile != null) {
                 Uri photoURI = FileProvider.getUriForFile(this, "com.example.android.fileprovider", photoFile);
                 cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                 startActivityForResult(cameraIntent, 1);
-                //TODO: SET CAMERA SIZE to 1:1 instead of 4:3 default..??? can do this?
             }
         }
     }
 
+    /**
+     * Save the full sized image taken from camera to an app private directory that is deleted if app is removed
+     * @return a File to store a photo taken with the camera intent
+     * @throws IOException error when making File
+     */
     private File createImageFile() throws IOException {
-        // save the full sized image taken from camera to an app private directory that is deleted if app is removed
 //        Locale locale = ConfigurationCompat.getLocales(Resources.getSystem().getConfiguration());
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
@@ -101,9 +75,14 @@ public class MainActivity extends AppCompatActivity {
         return image;
     }
 
+    /**
+     * Gets the image taken with the camera intent as a Bitmap to display in an ImageView {@link #mCameraView} as a preview
+     * @param requestCode request code is 1 for our camera intent
+     * @param resultCode RESULT_OK means we got a photo, RESULT_CANCELLED means no photo
+     * @param data returns result data from the camera Intent we used, can use getExtras to obtain this
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        // gets the image taken with camera as a bitmap displayed in an ImageView for a preview
         super.onActivityResult(requestCode, resultCode, data);
         if  (requestCode == 1) {  // result from camera intent
             if (resultCode == RESULT_OK) {  // got a photo back from camera
@@ -126,8 +105,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Method to save a picture taken from this app into the device's gallery
+     */
     private void addPicGallery() {
-        // save a picture taken from this app to the gallery
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
         File f = new File(mCurrentPhotoPath);
         Uri contentUri = Uri.fromFile(f);
@@ -135,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
         this.sendBroadcast(mediaScanIntent);
         // directory for gallery images
 //        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-        //TODO: get pics from storage to display?
+        //TODO: this method doesnt work??
     }
 
     /**
@@ -163,6 +144,11 @@ public class MainActivity extends AppCompatActivity {
         return new BitmapDrawable(getResources(), scaledBmp);
     }
 
+    /**
+     * Setup Buttons and their onClickListeners that allow the user to choose settings, take a photo, and start a puzzle.
+     * Also setup the recycler view which displays image choices for the puzzle.
+     * @param savedInstanceState get previously saved activity instance
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -189,10 +175,6 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //        }
 //        Log.i(TAG, "onCreate: "+defaultImages);
-
-        final Intent intent1 = new Intent(this, game_test.class);
-        final Intent intent2 = new Intent(this, PuzzleGridTest.class);
-        mGridRows = 4; // default amount of grid rows is 4
 
         final int[] drawableInts = {
                 R.drawable.dfdfdefaultgrid, R.drawable.dfdfcarpet, R.drawable.dfdfcat, R.drawable.dfdfclock,
@@ -224,13 +206,13 @@ public class MainActivity extends AppCompatActivity {
         mlayoutManager = new LinearLayoutManager(this, 1, false);
         mRecyclerView.setLayoutManager(mlayoutManager);
         // set adapter to default use default image dataset
-        final ImageRecyclerAdapter testAdapter = new ImageRecyclerAdapter(drawableInts, intent2,this);
+        final ImageRecyclerAdapter testAdapter = new ImageRecyclerAdapter(drawableInts,this);
         mAdapter = testAdapter;
         mRecyclerView.setAdapter(testAdapter);
 
         // toggle recycler view between default images and photos taken and saved using this app
         ToggleButton adapterButton = findViewById(R.id.adapterButton);
-        final ImageRecyclerAdapter photoAdapter = new ImageRecyclerAdapter(savedPhotos, intent2, this);
+        final ImageRecyclerAdapter photoAdapter = new ImageRecyclerAdapter(savedPhotos, this);
         mPhotoAdapter = photoAdapter;
         adapterButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -249,19 +231,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        final RadioGroup setGrid = findViewById(R.id.setGrid);
-        RadioButton set3 = findViewById(R.id.set3);
-        set3.setTag(3);
-        RadioButton set4 = findViewById(R.id.set4);
-        set4.setTag(4);
-        RadioButton set5 = findViewById(R.id.set5);
-        set5.setTag(5);
-        RadioButton set6 = findViewById(R.id.set6);
-        set6.setTag(6);
-        final RadioButton[] radioButtons = {
-                set3, set4, set5, set6
-        };
-
         // take a photo from camera and get pic
         mCameraView = findViewById(R.id.photoView);
         ImageButton cameraButton = findViewById(R.id.cameraButton);
@@ -278,7 +247,8 @@ public class MainActivity extends AppCompatActivity {
         final int[] gridOverlays = {R.drawable.gridoverlay3, R.drawable.gridoverlay4,
                 R.drawable.gridoverlay5, R.drawable.gridoverlay6};
 
-        // set the gridsize based on the checked button, this value will be used as an intent extra when starting the game
+        // set gridsize based on the checked radio button, this value will be used as an intent extra when starting the game
+        final RadioGroup setGrid = findViewById(R.id.setGrid);
         setGrid.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
@@ -297,26 +267,32 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        final Intent gameIntent = new Intent(this, PuzzleGridTest.class);
+        mGridRows = 4; // default amount of grid rows is 4
+        final int[] defaultPuzzles = {R.drawable.grid9, R.drawable.grid15, R.drawable.grid25, R.drawable.grid36};
+
         // on click listener for the load button creates an intent to start the game activity and sets extras to give
         // that activity the information of grid size and image to use
         Button loadButton = findViewById(R.id.loadButton);
         loadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                intent2.putExtra("numColumns", mGridRows);  // set extra for grid size
+                gameIntent.putExtra("numColumns", mGridRows);  // set extra for grid size
                 // set extra for image to use - check if photo has been taken or use the default numbered image
                 if (mCurrentPhotoPath != null) {  // if taken pic use that
-                    intent2.putExtra("photoPath", mCurrentPhotoPath);
-                    intent2.putExtra("puzzleNum", -1);
+                    gameIntent.putExtra("photoPath", mCurrentPhotoPath);
+                    gameIntent.putExtra("puzzleNum", -1);
                 } else {  // get drawable for selected image from recycler view
                     int selectedImage = testAdapter.getmSelectedImage();
-                    // if there is a selection send the id and puzzle number to the game activity - defaults are 15grid
-                    if (selectedImage != -1) {
-                        intent2.putExtra("drawableId", drawableInts[selectedImage]);
-                        intent2.putExtra("puzzleNum", selectedImage);
+                    // if we have no selection, check for selected grid size to send the appropriate default image
+                    if (selectedImage == -1) {
+                        gameIntent.putExtra("drawableId", defaultPuzzles[mGridRows - 3]);  // 3x3 grid is index 0 in array
+                    } else {  // if there is a selection send the id and puzzle number to the game activity
+                        gameIntent.putExtra("drawableId", drawableInts[selectedImage]);
+                        gameIntent.putExtra("puzzleNum", selectedImage);
                     }
                 }
-                startActivity(intent2);  // start game activity
+                startActivity(gameIntent);  // start game activity
             }
         });
 

@@ -1,20 +1,16 @@
 package com.example.lamelameo.picturepuzzle;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.support.constraint.ConstraintLayout;
 import android.support.v7.widget.AppCompatImageView;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.*;
 
 import java.util.ArrayList;
 
@@ -29,9 +25,8 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
     private ArrayList<myViewHolder> viewHolders;
 
     // constructor takes array of drawables resource integers
-    ImageRecyclerAdapter(int[] drawableInts, Intent intent, Context context) {
+    ImageRecyclerAdapter(int[] drawableInts, Context context) {
 //        mDataset = imageDataset;
-        mIntent = intent;
         mDrawableInts = drawableInts;
         mContext = context;
         mGridRows = 4;
@@ -39,8 +34,7 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
     }
 
     // constructor takes arraylist of drawables
-    ImageRecyclerAdapter(ArrayList<Drawable> images, Intent intent, Context context) {
-        mIntent = intent;
+    ImageRecyclerAdapter(ArrayList<Drawable> images, Context context) {
         mDataset = images;
         mContext = context;
         mGridRows = 4;
