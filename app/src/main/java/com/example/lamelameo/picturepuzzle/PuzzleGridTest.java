@@ -36,10 +36,14 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     private boolean gamePaused = false;
     private Runnable timerRunnable;
     private PauseMenu pauseMenu;
+    private int[] bestData;
 
     /**
-     *
-     * @param savedInstanceState
+     * Retrieve data from main activity, and create the images for the grid cells using the given image and grid size.
+     * Create a randomised list of indexes to randomise the image grid, and load the cell images to the grid according to
+     * the randomised order. Add cell tags for tracking of the images as they are moved by user. Set cell onClickListener
+     * to allow user to click or swipe cells to move the images, and add pause button listener, to open pause UI.
+     * @param savedInstanceState saved stuff
      */
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -125,7 +129,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
 
         // show the saved best time and move data for the given puzzle
         TextView bestTimeView = findViewById(R.id.bestTimeView);
-        int[] bestData = puzzleBestData();
+        bestData = puzzleBestData();
         if (bestData[0] != -1) {
             int secs = bestData[0] % 60;
             int mins = bestData[0] / 60;
@@ -206,9 +210,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
             if (timerCount != 0) {
                 startTimer();
             }
-            Log.i(TAG, "container not empty ");
         } else {  // fragment is not open - go back to main activity
-            Log.i(TAG, "container empty");
             finish();
         }
     }
@@ -251,7 +253,6 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     private void startTimer() {
         // save the system time for clock start to determine the delay for resumes
         startTime = SystemClock.uptimeMillis() + tickRemainder;
-        Log.i(TAG, "time till next tick: "+tickRemainder);
         // start runnable with a delay of 1 second, with initial delay as remaining milliseconds to complete the tick before pause
         timerFuture = timerExecutor.scheduleAtFixedRate(timerRunnable, tickRemainder, 1000, TimeUnit.MILLISECONDS);
     }
@@ -268,15 +269,13 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         long pauseTime = SystemClock.uptimeMillis();
         long elapsedSincePrevTick = pauseTime - prevTickTime;
         tickRemainder = 1000 - elapsedSincePrevTick;
-        // convert to string to take only last 3 integer values (take sub second values)
-        long elapsedTime = pauseTime - startTime;
-        String remainderStr = String.valueOf(elapsedTime);
-        String remainderHundreds = remainderStr.substring(remainderStr.length() - 3);
-        long remainder = 1000 - Integer.valueOf(remainderHundreds);
 
-        Log.i(TAG, "startTime: "+startTime+" pauseTime: "+pauseTime+" elapsed: "+ elapsedTime);
-        Log.i(TAG, "remainderHunds: "+remainderHundreds+" remainder: "+remainder);
-        Log.i(TAG, "timeSinceLastTick: "+elapsedSincePrevTick+" remainderToNext: "+tickRemainder);
+        //TODO: alternate method:
+        //convert to string to take only last 3 integer values (take sub second values)
+//        long elapsedTime = pauseTime - startTime;
+//        String remainderStr = String.valueOf(elapsedTime);
+//        String remainderHundreds = remainderStr.substring(remainderStr.length() - 3);
+//        long remainder = 1000 - Integer.valueOf(remainderHundreds);
 
         // stop scheduled tasks
         if (timerFuture != null) {
@@ -292,12 +291,11 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     @Override
     protected void onPause() {
         super.onPause();
+        Log.i(TAG, "onPause: ");
         // pause the game timer if it is currently running
         if (!gamePaused && timerCount != 0) {
             pauseTimer();
         }
-
-        Log.i(TAG, "onPause: ");
     }
 
     /**
@@ -307,11 +305,11 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     @Override
     protected void onResume() {
         super.onResume();
+        Log.i(TAG, "onResume: ");
         // automatically open pause fragment if the game was running when onPause was called
         if (timerCount != 0 && !gamePaused) {
             pauseFragment();
         }
-        Log.i(TAG, "onResume: ");
     }
 
     int getEmptyCellIndex() {
@@ -357,17 +355,15 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
             }
             // loop through lines till we get the puzzle we are looking for and get the saved data from that line
             while ((line = reader.readLine()) != null) {
-                Log.i(TAG, "lines: " + line);
+                Log.i(TAG, "savefile line: " + line);
+                // NOTE: only call method once or this will make the savedDataList have twice the entries, causing bugs
                 savedDataList.add(line);
                 if (currentLine == puzzleNum) {
                     int timeStartIndex = line.indexOf(":") + 2;
                     int timeEndIndex = line.indexOf(",");  // indexOf will give -1 if not found ie no data for the puzzle
-                    Log.i(TAG, "timeStartIndex: "+timeStartIndex);
-                    Log.i(TAG, "timeEndIndex: "+timeEndIndex);
                     if (timeEndIndex != -1) {  // if there is saved data then get it
                         savedData[0] = Integer.valueOf(line.substring(timeStartIndex, timeEndIndex));
                         savedData[1] = Integer.valueOf(line.substring(timeEndIndex+1));
-                        Log.i(TAG, "savedData: "+savedData[0]+","+savedData[1]);
                     }
                 }
                 currentLine += 1;
@@ -377,7 +373,6 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
             readException.printStackTrace();
             // create the file if there is none already
             if (readException instanceof FileNotFoundException) {
-                Log.i(TAG, "made time file ");
                 for (String element : puzzleStrings) {
                     stringBuilder.append(element).append("\n");
                     savedDataList.add(element);
@@ -423,14 +418,11 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
      */
     private void saveGameData(int[] gameData) {
         //TODO: support for different sized grid times
-
         String gameTime = Integer.toString(gameData[0]);
         String gameMoves = Integer.toString(gameData[1]);
         StringBuilder stringBuilder = new StringBuilder();
-        Log.i(TAG, "puzzleNum: "+puzzleNum);
-
+        //TODO: add support for photos taken by the app...change puzzleNum for these, and add lines in file as needed
         if (puzzleNum == -1) {
-            //TODO: add support for photos taken by the app...change puzzleNum for these, and add lines in file as needed
             return;
         }
 
@@ -438,21 +430,22 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         String newData = "";
         int timeStartIndex = savedData.indexOf(":") + 2;
         int timeEndIndex = savedData.indexOf(",");
+
         String puzzleIdentifier = savedData.substring(0, timeStartIndex);
         if (timeEndIndex == -1) {  // if there is no saved data then add the game data
-            newData = puzzleIdentifier + gameTime + "," + gameMoves + "\n";
+            newData = puzzleIdentifier + gameTime + "," + gameMoves;
         } else {  // there is saved data, so check if game time/moves and update if either are lower
             String timeString = savedData.substring(timeStartIndex, timeEndIndex);
             String moveString = savedData.substring(timeEndIndex+1);
             // time and moves are lower than saved values, so update
             if (gameData[0] < Integer.valueOf(timeString) && gameData[1] < Integer.valueOf(moveString)) {
-                newData = puzzleIdentifier + gameTime + "," + gameMoves + "\n";
+                newData = puzzleIdentifier + gameTime + "," + gameMoves;
             }  // update time only
             if (gameData[0] < Integer.valueOf(timeString) && gameData[1] > Integer.valueOf(moveString)) {
-                newData = puzzleIdentifier + gameTime + "," + moveString + "\n";
+                newData = puzzleIdentifier + gameTime + "," + moveString;
             }  // update moves only
             if (gameData[0] > Integer.valueOf(timeString) && gameData[1] < Integer.valueOf(moveString)) {
-                newData = puzzleIdentifier + timeString + "," + gameMoves + "\n";
+                newData = puzzleIdentifier + timeString + "," + gameMoves;
             }
         }
         // if newdata is changed, then we have to update the data file
@@ -462,9 +455,11 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
             savedDataList.add(puzzleNum, newData);
             // use string builder to concatenate all strings
             for (String element : savedDataList) {
-                stringBuilder.append(element);
+                Log.i(TAG, "saveGameData listLine: "+element);
+                stringBuilder.append(element).append("\n");
             }
             String fileContents = stringBuilder.toString();
+            Log.i(TAG, "saveGameData fileContents: "+fileContents);
             // overwrite the old file to contain the updated data
             FileOutputStream outputStream = null;
             try {
@@ -472,7 +467,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                 outputStream.write(fileContents.getBytes());
             } catch (Exception writeError) {
                 Log.i(TAG, "write exception: "+writeError);
-            } finally {  //TODO: need finally block to close outputstream?
+            } finally {
                 if (outputStream != null) {
                     try {
                         outputStream.close();
@@ -491,7 +486,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
      * @param numCols number of columns in the puzzle grid
      */
     private ArrayList<Integer> randomiseGrid(int numCols) {
-        // creates a randomised grid that is guaranteed to be solvable - empty cell is always bottom right
+        // initialise objects and set variables
         Random random = new Random();
         ArrayList<Integer> randomisedGrid = new ArrayList<>();
         ArrayList<Integer> posPool = new ArrayList<>();
@@ -499,7 +494,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         // list of ascending values from 0 - size of grid used for tracking values tested for inversions
 //        ArrayList<Integer> unTestedValues = new ArrayList<>();
 
-        while (true) {  // create randomised grid in while loop and only break if
+        while (true) {  // create randomised grid, check if solvable, then break if it is
             // initialise variables for start of each loop
             int bound = gridSize-1;  // bounds for random generator...between 0 (inclusive) and number (exclusive)
             randomisedGrid.clear();
@@ -570,8 +565,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
      */
     int dpToPx(float dp) {
         float density = getResources().getDisplayMetrics().density;
-        // rounds up/down around 0.5
-        long pixels = Math.round(dp * density);
+        long pixels = Math.round(dp * density);  // rounds up/down around 0.5
         return (int) pixels;
     }
 
@@ -634,12 +628,9 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
      * @return a boolean which indicates whether the grid is solved or not
      */
     private boolean gridSolved() {
-        // get grid size and iterate through all cells
-        int numCells = gridCells.size();
-        for (int x=0; x<numCells; x++) {
+        for (ImageView cell: gridCells) {
             // get the tags of each cell in the grid
-            int[] cellTag = (int[])gridCells.get(x).getTag();
-            Log.i(TAG, "gridSolvedCell: "+x+" tag: "+cellTag[1]);
+            int[] cellTag = (int[])cell.getTag();
             if (cellTag[0] != cellTag[1]) {
                 return false;
             }
@@ -702,18 +693,10 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
             @Override
             public void onClick(View v) {
                 //TODO: randomise grid or reset to starting state?
+                //  if reset puzzle without creating new activity instance, then must reset all data and variables
+                //  eg. class vars: gamePaused, gameData, etc. also local vars in onCreate OR save the randomised grid
+                //  and call oncreate
                 recreate();
-
-                // reset puzzle grid
-
-//                // remove completion overlay
-//                pauseContainer.setClickable(false);
-//                pauseContainer.setVisibility(View.INVISIBLE);
-//                // reset timer and move counter
-//                timerCount = 0;
-//                numMoves = 0;
-//                startTimer();
-//                pauseContainer.removeAllViews();
 
             }
         });
@@ -728,15 +711,15 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         String bestSecs;
         String bestMins;
         String bestMoves;
-        int[] savedData = puzzleBestData();
-        if (savedData[0] == -1) {
+        // there is no saved data for the current puzzle
+        if (bestData[0] == -1) {
             bestSecs = "";
             bestMins = "";
             bestMoves = "";
-        } else {
-            bestSecs = String.valueOf(savedData[0] % 60);
-            bestMins = String.valueOf(savedData[0] / 60);
-            bestMoves = String.valueOf(savedData[1]);
+        } else {  // there is saved data
+            bestSecs = String.valueOf(bestData[0] % 60);
+            bestMins = String.valueOf(bestData[0] / 60);
+            bestMoves = String.valueOf(bestData[1]);
         }
         int puzzleSecs = gameData[0] % 60;
         int puzzleMins = gameData[0] / 60;
@@ -793,8 +776,10 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         int[] gameData = {timerCount, numMoves};
         if (gridSolved()) {
             pauseTimer();
+            gamePaused = true;  // change this so onResume does not open pause fragment after a finished game
             //TODO: animation or wait between UI popup?
             solvedPuzzleUI(gameData);
+            Log.i(TAG, "savedList: "+savedDataList);
             saveGameData(gameData);
         }
     }
@@ -857,25 +842,23 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
             int[] tag = (int[])v.getTag();
             // consume touch with no action taken if empty cell is touched
             if (tag[0] == emptyCellIndex) {
-                Log.i(TAG, "emptyCellTouched");
                 return true;
             }
 
-            // TODO: multi finger touch.. think ive handled it but keeping jsut in case..
             // get pointer id which identifies the touch...can handle multi touch events
             int action = event.getActionMasked();
             int index = event.getActionIndex();
             int pointerId = event.getPointerId(index);
-            Log.i(TAG, "pointer ID: "+pointerId);
 
             // if the pointer id isnt 0, a touch is currently being processed - ignore this new one to avoid crashes
             if (pointerId != 0) {
+                Log.i(TAG, "pointer ID: "+pointerId);
                 Log.i(TAG, "multi touch detected");
                 return true;
             }
 
             final int DISTANCE_THRESHOLD = dpToPx(11);  // ~1/3 the cell size
-            final int VELOCITY_THRESHOLD = 200;  // TODO: BALANCE VALUE
+            final int VELOCITY_THRESHOLD = 200;  // TODO: change value if unhappy with sensitivity
             int gridSize = (int)Math.sqrt(gridCells.size());
 
             float xVelocity, xCancel, xDiff, yVelocity, yCancel, yDiff;
@@ -895,10 +878,6 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                     Log.i(TAG, "onMove: ");
                     mVelocityTracker.addMovement(event);
                     mVelocityTracker.computeCurrentVelocity(1000);
-//                    xVelocity = mVelocityTracker.getXVelocity(pointerId);
-//                    yVelocity = mVelocityTracker.getYVelocity(pointerId);
-//                    float xMove = event.getRawX();
-//                    float yMove = event.getRawY();
                     break;
                 case MotionEvent.ACTION_UP:
                     Log.i(TAG, "onTouch: ");
@@ -914,16 +893,12 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                     yDiff = yCancel - yDown;
                     xVelocity = mVelocityTracker.getXVelocity(pointerId);
                     yVelocity = mVelocityTracker.getYVelocity(pointerId);
-                    Log.i(TAG, "xDown: "+xDown+" xCancel: "+xCancel+" yDown: "+yDown+" yCancel: "+yCancel);
-                    Log.i(TAG, "diffX: "+xDiff+" diffY: "+yDiff+" velX: "+xVelocity+" velY: "+yVelocity);
-
+                    // process swipes
                     if (Math.abs(xDiff) > Math.abs(yDiff)) {  // potential horizontal swipe - check distance and velocity
                         if (Math.abs(xDiff) > DISTANCE_THRESHOLD && Math.abs(xVelocity) > VELOCITY_THRESHOLD) {
                             if (xDiff > 0) {  // right swipe
-                                Log.i(TAG, "rightSwipe ");
                                 SwipeCell(v, gridSize, 1);
                             } else {  // left swipe
-                                Log.i(TAG, "leftSwipe");
                                 SwipeCell(v, gridSize, 2);
                             }
                         } else {
@@ -933,10 +908,8 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                         if (Math.abs(xDiff) < Math.abs(yDiff)) {  // potential vertical swipe
                             if (Math.abs(yDiff) > DISTANCE_THRESHOLD && Math.abs(yVelocity) > VELOCITY_THRESHOLD) {
                                 if (yDiff > 0) {  // down swipe
-                                    Log.i(TAG, "downSwipe");
                                     SwipeCell(v, gridSize, 3);
                                 } else {  // up swipe
-                                    Log.i(TAG, "upSwipe");
                                     SwipeCell(v, gridSize, 4);
                                 }
                             } else {
