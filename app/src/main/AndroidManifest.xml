@@ -25,16 +25,6 @@
         </activity>
         <activity android:name=".game_test" />
 
-        <receiver android:name=".ImagePreview">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/image_preview_info" />
-        </receiver>
-
         <provider
             android:name="android.support.v4.content.FileProvider"
             android:authorities="com.example.android.fileprovider"

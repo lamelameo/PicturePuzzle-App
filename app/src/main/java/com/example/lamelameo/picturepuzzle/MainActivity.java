@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private String mCurrentPhotoPath;
 //    private Drawable[] puzzleImages;
     private int mGridRows;
+    private boolean defaultAdapter;
 
     /**
      * Creates and invokes an Intent to take a photo using the camera
@@ -185,11 +186,13 @@ public class MainActivity extends AppCompatActivity {
         File imageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         File[] storedImages = imageDir.listFiles();
         final ArrayList<Drawable> savedPhotos = new ArrayList<>();
+        final ArrayList<String> photoPaths = new ArrayList<>();
         float density = getResources().getDisplayMetrics().density;
         long recyclerViewPx = Math.round(150 * density);
         for (File file : storedImages) {
             Log.i(TAG, "onCreate:file "+file.getName());
             String imagePath = file.getAbsolutePath();
+            photoPaths.add(imagePath);
             Drawable imageBitmap = scalePhoto((int)recyclerViewPx, imagePath);
 //            Drawable drawable = BitmapDrawable.createFromPath(imagePath);
             savedPhotos.add(imageBitmap);
@@ -209,24 +212,31 @@ public class MainActivity extends AppCompatActivity {
         final ImageRecyclerAdapter testAdapter = new ImageRecyclerAdapter(drawableInts,this);
         mAdapter = testAdapter;
         mRecyclerView.setAdapter(testAdapter);
-
+        defaultAdapter = true;
         // toggle recycler view between default images and photos taken and saved using this app
         ToggleButton adapterButton = findViewById(R.id.adapterButton);
         final ImageRecyclerAdapter photoAdapter = new ImageRecyclerAdapter(savedPhotos, this);
         mPhotoAdapter = photoAdapter;
+        //TODO: could use a grid layout manager to allow for a grid in recycler view rather than list (or a choice)
+
+        // set button listener to change between datasets (defaults or photos) for the recycler view
         adapterButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                //TODO: have to update selection upon changing adapters
-                if (isChecked) {
+                defaultAdapter = !defaultAdapter;  // update boolean to track which dataset is displayed
+                if (isChecked) {  // recycler displaying default images -> change to app photo gallery
                     Log.i(TAG, "onCheckedChanged: checked");
                     mRecyclerView.swapAdapter(photoAdapter, true);
-                    photoAdapter.resetSelection();
-
-                } else {
+//                    testAdapter.resetSelection();
+                    // inform adapter of dataset change to defaults
+                    photoAdapter.notifyDataSetChanged();
+                    photoAdapter.setIsDefaultImages();  // update boolean which tells adapter which dataset is shown
+                } else {  // recycler displaying app gallery -> defaults
                     Log.i(TAG, "onCheckedChanged: unchecked");
                     mRecyclerView.swapAdapter(testAdapter, true);
-                    testAdapter.resetSelection();
+//                    testAdapter.resetSelection();
+                    testAdapter.notifyDataSetChanged();
+                    testAdapter.setIsDefaultImages();
                 }
             }
         });
@@ -277,19 +287,35 @@ public class MainActivity extends AppCompatActivity {
         loadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                //TODO: should change all this with switch case instead, same as in game activity, is much simpler
                 gameIntent.putExtra("numColumns", mGridRows);  // set extra for grid size
                 // set extra for image to use - check if photo has been taken or use the default numbered image
                 if (mCurrentPhotoPath != null) {  // if taken pic use that
                     gameIntent.putExtra("photoPath", mCurrentPhotoPath);
                     gameIntent.putExtra("puzzleNum", -1);
-                } else {  // get drawable for selected image from recycler view
-                    int selectedImage = testAdapter.getmSelectedImage();
-                    // if we have no selection, check for selected grid size to send the appropriate default image
-                    if (selectedImage == -1) {
-                        gameIntent.putExtra("drawableId", defaultPuzzles[mGridRows - 3]);  // 3x3 grid is index 0 in array
-                    } else {  // if there is a selection send the id and puzzle number to the game activity
-                        gameIntent.putExtra("drawableId", drawableInts[selectedImage]);
-                        gameIntent.putExtra("puzzleNum", selectedImage);
+                } else {  // get drawable for selected image from recycler view adapter
+                    int selectedImage = testAdapter.getSelection();
+                    gameIntent.removeExtra("photoPath");  // must remove or will choose photo
+                    if (defaultAdapter) {  // selection is from default images
+                        Log.i(TAG, "default image chosen");
+                        gameIntent.removeExtra("appPhotoPath");
+                        // if we have no selection, check for selected grid size to send the appropriate default image
+                        if (selectedImage == -1) {
+                            gameIntent.putExtra("drawableId", defaultPuzzles[mGridRows - 3]);  // 3x3 grid is index 0 in array
+                        } else {  // if there is a selection send the id and puzzle number to the game activity
+                            gameIntent.putExtra("drawableId", drawableInts[selectedImage]);
+                            gameIntent.putExtra("puzzleNum", selectedImage);
+                        }
+                    } else {  // selection is from app photos
+                        Log.i(TAG, "app photo chosen");
+                        if (selectedImage == -1) {
+                            gameIntent.removeExtra("appPhotoPath");
+                            gameIntent.putExtra("drawableId", defaultPuzzles[mGridRows - 3]);
+                        } else {
+                            //TODO: send photo path, with no puzzlenum extra as savefiel doesnt support it
+                            gameIntent.putExtra("appPhotoPath", photoPaths.get(selectedImage));
+                            gameIntent.putExtra("puzzleNum", -1);
+                        }
                     }
                 }
                 startActivity(gameIntent);  // start game activity

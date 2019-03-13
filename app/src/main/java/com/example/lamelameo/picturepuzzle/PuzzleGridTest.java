@@ -61,9 +61,15 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         String photoPath = getIntent().getStringExtra("photoPath");
 
         // create puzzle piece bitmaps using the given image and add to bitmaps list
-        if (photoPath == null) {  // no photo taken, so use the selected app image, or appropriate default image
-            int gridBitmap = getIntent().getIntExtra("drawableId", R.drawable.dfdfdefaultgrid);
-            Bitmap bmp = BitmapFactory.decodeResource(getResources(), gridBitmap);
+        if (photoPath == null) {  // no photo taken, so use the selected app photo, or appropriate default image
+            Bitmap bmp;
+            String appPhotoPath = getIntent().getStringExtra("appPhotoPath");
+            if (appPhotoPath != null) {  // selected an app photo
+                bmp = scalePhoto(gridSize, appPhotoPath);
+            } else {  // selected a default image, or no selection
+                int gridBitmap = getIntent().getIntExtra("drawableId", R.drawable.dfdfdefaultgrid);
+                bmp = BitmapFactory.decodeResource(getResources(), gridBitmap);
+            }
             int imageSize = bmp.getWidth();
             createBitmapGrid(bmp, numCols, numCols, imageSize);
         } else {  // have taken a photo - so use it for the image
@@ -285,7 +291,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
 
     /**
      * Pauses the game timer if the game has been started but the pause menu is not open. If either of these conditions
-     * are not met, do not call {@link #pauseTimer()} as class variables are updated in this method which affect the timer.
+     * are not met, do not call {@link #pauseTimer()} as instance variables are updated in this method which affect the timer.
      * Used for instances where the app loses focus on the device but the user did not manually pause the game.
      */
     @Override
@@ -340,6 +346,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         FileInputStream saveTimesFile = null;
         int[] savedData = {-1, -1};
         StringBuilder stringBuilder = new StringBuilder();
+        //TODO: support for all sized default grids...
         String[] puzzleStrings = {"defaultgrid: ", "carpet: ", "cat: ", "clock: ", "crab: ",
                 "darklights: ", "nendou: ", "razer: ", "saiki: ", "mms: "};
 
