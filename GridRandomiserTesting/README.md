@@ -1,5 +1,3 @@
-# Testing the function used to generate randomised grids
-
 # Testing the function used to generate randomised grids (Mostly out of curiosity)
 ### *TL;DR: My simple function maintains the randomness? of the java Random class methods (until I maybe change it a bit)*
 
