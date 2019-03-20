@@ -29,9 +29,6 @@ public class MainActivity extends AppCompatActivity {
 
     private String TAG = "MainActivity";
     private RecyclerView mRecyclerView;
-    private RecyclerView.Adapter mAdapter;
-    private RecyclerView.Adapter mPhotoAdapter;
-    private RecyclerView.LayoutManager mlayoutManager;
     private ImageView mCameraView;
     private String mCurrentPhotoPath;
 //    private Drawable[] puzzleImages;
@@ -155,9 +152,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //TODO: picture button allows you to choose image from gallery or take photo
-        //  can search gallery images with mediastore intent
-
 //        Field[] drawableFields = com.example.lamelameo.picturepuzzle.R.drawable.class.getFields();
 //        ArrayList<Drawable> defaultImages = new ArrayList<>();
 //        Drawable[] puzzleImages = new Drawable[12];
@@ -196,27 +190,21 @@ public class MainActivity extends AppCompatActivity {
             Drawable imageBitmap = scalePhoto((int)recyclerViewPx, imagePath);
 //            Drawable drawable = BitmapDrawable.createFromPath(imagePath);
             savedPhotos.add(imageBitmap);
-            //TODO: have to rotate and scale images, recyclerview is very slow...
         }
 
-        //TODO: create a fragment to scroll through images including the defaults (at top) and image gallery
-        // add defaults to app pics on create,
-
         mRecyclerView = findViewById(R.id.pictureRecyclerView);
-        // improves performance given that view doesnt change size
-//        mRecyclerView.setHasFixedSize(true);
+        // improves performance given that recycler does not change size based on its contents (the images)
+        mRecyclerView.setHasFixedSize(true);
         // use layout manager -  horizontal orientation = 1, vertical = 0
-        mlayoutManager = new LinearLayoutManager(this, 1, false);
-        mRecyclerView.setLayoutManager(mlayoutManager);
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this, 1, false);
+        mRecyclerView.setLayoutManager(layoutManager);
         // set adapter to default use default image dataset
         final ImageRecyclerAdapter testAdapter = new ImageRecyclerAdapter(drawableInts,this);
-        mAdapter = testAdapter;
         mRecyclerView.setAdapter(testAdapter);
         defaultAdapter = true;
         // toggle recycler view between default images and photos taken and saved using this app
         ToggleButton adapterButton = findViewById(R.id.adapterButton);
         final ImageRecyclerAdapter photoAdapter = new ImageRecyclerAdapter(savedPhotos, this);
-        mPhotoAdapter = photoAdapter;
         //TODO: could use a grid layout manager to allow for a grid in recycler view rather than list (or a choice)
 
         // set button listener to change between datasets (defaults or photos) for the recycler view
@@ -287,32 +275,30 @@ public class MainActivity extends AppCompatActivity {
         loadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //TODO: should change all this with switch case instead, same as in game activity, is much simpler
+                //TODO: should change all this with switch case instead, same as in game activity, is much simpler?
                 gameIntent.putExtra("numColumns", mGridRows);  // set extra for grid size
+                // remove any previous extra so the game activity does not use it instead of the intended image/photo
+                gameIntent.removeExtra("photoPath");  // app taken photo
+                gameIntent.removeExtra("appPhotoPath"); // saved photos
+                gameIntent.removeExtra("drawableId");  // default images
                 // set extra for image to use - check if photo has been taken or use the default numbered image
                 if (mCurrentPhotoPath != null) {  // if taken pic use that
                     gameIntent.putExtra("photoPath", mCurrentPhotoPath);
                     gameIntent.putExtra("puzzleNum", -1);
-                } else {  // get drawable for selected image from recycler view adapter
+                } else {  // get drawable id or photo path for selected image from recycler view adapter
                     int selectedImage = testAdapter.getSelection();
-                    gameIntent.removeExtra("photoPath");  // must remove or will choose photo
-                    if (defaultAdapter) {  // selection is from default images
-                        Log.i(TAG, "default image chosen");
-                        gameIntent.removeExtra("appPhotoPath");
-                        // if we have no selection, check for selected grid size to send the appropriate default image
-                        if (selectedImage == -1) {
-                            gameIntent.putExtra("drawableId", defaultPuzzles[mGridRows - 3]);  // 3x3 grid is index 0 in array
-                        } else {  // if there is a selection send the id and puzzle number to the game activity
+                    // if no selection, check for selected grid size to send the appropriate default image
+                    if (selectedImage == -1) {
+                        gameIntent.putExtra("drawableId", defaultPuzzles[mGridRows - 3]);  // 3x3 grid is index 0 in array
+                    } else {  // there is a selected item from whichever dataset is displayed
+                        if (defaultAdapter) {  // selection is from default images
+                            Log.i(TAG, "default image chosen");
+                            // if there is a selection send the id and puzzle number to the game activity
                             gameIntent.putExtra("drawableId", drawableInts[selectedImage]);
                             gameIntent.putExtra("puzzleNum", selectedImage);
-                        }
-                    } else {  // selection is from app photos
-                        Log.i(TAG, "app photo chosen");
-                        if (selectedImage == -1) {
-                            gameIntent.removeExtra("appPhotoPath");
-                            gameIntent.putExtra("drawableId", defaultPuzzles[mGridRows - 3]);
-                        } else {
-                            //TODO: send photo path, with no puzzlenum extra as savefiel doesnt support it
+                        } else {  // selection is from app photos
+                            Log.i(TAG, "app photo chosen");
+                            //TODO: send photo path, with no puzzlenum extra as savefile does not support it
                             gameIntent.putExtra("appPhotoPath", photoPaths.get(selectedImage));
                             gameIntent.putExtra("puzzleNum", -1);
                         }

@@ -37,13 +37,14 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     private Runnable timerRunnable;
     private PauseMenu pauseMenu;
     private int[] bestData;
+    private boolean newBestData;
 
     /**
      * Retrieve data from main activity, and create the images for the grid cells using the given image and grid size.
      * Create a randomised list of indexes to randomise the image grid, and load the cell images to the grid according to
      * the randomised order. Add cell tags for tracking of the images as they are moved by user. Set cell onClickListener
      * to allow user to click or swipe cells to move the images, and add pause button listener, to open pause UI.
-     * @param savedInstanceState saved stuff
+     * @param savedInstanceState previously saved instance of the activity
      */
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -64,7 +65,8 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         if (photoPath == null) {  // no photo taken, so use the selected app photo, or appropriate default image
             Bitmap bmp;
             String appPhotoPath = getIntent().getStringExtra("appPhotoPath");
-            if (appPhotoPath != null) {  // selected an app photo
+            // selected an app photo
+            if (appPhotoPath != null) {
                 bmp = scalePhoto(gridSize, appPhotoPath);
             } else {  // selected a default image, or no selection
                 int gridBitmap = getIntent().getIntExtra("drawableId", R.drawable.dfdfdefaultgrid);
@@ -424,7 +426,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
      * @param gameData array[2] containing an int for the amount of time (seconds) and moves to complete the puzzle
      */
     private void saveGameData(int[] gameData) {
-        //TODO: support for different sized grid times
+        //TODO: support for different sized grid times, also different saves for default grids not just bundled
         String gameTime = Integer.toString(gameData[0]);
         String gameMoves = Integer.toString(gameData[1]);
         StringBuilder stringBuilder = new StringBuilder();
@@ -432,7 +434,8 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         if (puzzleNum == -1) {
             return;
         }
-
+        // set or initialise variables
+        newBestData = false;
         String savedData = savedDataList.get(puzzleNum);
         String newData = "";
         int timeStartIndex = savedData.indexOf(":") + 2;
@@ -457,9 +460,9 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         }
         // if newdata is changed, then we have to update the data file
         if (!newData.equals("")) {
+            newBestData = true;  // signal that a new best has been achieved
             // update the relevant item in the data list, with the new string
-            savedDataList.remove(puzzleNum);
-            savedDataList.add(puzzleNum, newData);
+            savedDataList.set(puzzleNum, newData);
             // use string builder to concatenate all strings
             for (String element : savedDataList) {
                 Log.i(TAG, "saveGameData listLine: "+element);
@@ -527,7 +530,6 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
             // n=even -> empty cell on even row (from bottom: 1,2,3++ = 1 for bottom right) + inversions: odd = solvable
             //        -> empty cell on odd row + inversions: even = solvable
             // inversion: position pairs (a,b) where (list) index a < index b and (value) a > b have to check all
-
             int inversions = 0;
             for (int index=0; index<gridSize-1; index++) {  // test all grid cells for pairs with higher index cells
                 int currentNum = randomisedGrid.get(index);
@@ -536,12 +538,10 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                     if (currentNum > pairNum) {  // add inversion if paired cell value is less than current cell value
                         inversions += 1;
                     }
-
                 }
             }
 
             //TODO: alternate method to count inversions, faster or slower? above is n(n-1)/2 for n size grid (sum nat nums)
-            // logn for search, n for remove, but n decreases each loop
 
 //            // index of the current value being tested in the ordered values = how many lesser values have a greater
 //            // index than it and therefore how many inversions there are for this value - if we remove tested values
@@ -557,7 +557,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
 //            unTestedValues.remove(0);  // remove the last remaining value as we dont loop anymore
 
             Log.i(TAG, "randomiseGrid: inversions "+inversions);
-            // if randomised grid is sovlable then break the while loop and return that grid - else next loop creates new grid
+            // if randomised grid is solvable then break the while loop and return that grid - else next loop creates new grid
             if (inversions%2 == 0) {  // empty cell always on bottom right so both odd and even size grids need even inversions
                 break;
             }
@@ -736,6 +736,15 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                 puzzleMins, puzzleSecs, gameData[1]));
         bestsView.setText(String.format(Locale.getDefault(), " Best Time: %s m : %s s \n Best Moves: %s",
                 bestMins, bestSecs, bestMoves));
+
+        // display a message if user achieved a new best
+        if (newBestData) {
+            Toast newBestToast = Toast.makeText(getApplicationContext(), "New Best \uD83D\uDC4D", Toast.LENGTH_LONG);
+//            int toastPosition = (int)pauseContainer.getY();
+            newBestToast.setGravity(Gravity.TOP, 0, 150);  // TODO: want it just above UI?
+            newBestToast.show();
+        }
+
     }
 
     /**
@@ -785,9 +794,8 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
             pauseTimer();
             gamePaused = true;  // change this so onResume does not open pause fragment after a finished game
             //TODO: animation or wait between UI popup?
-            solvedPuzzleUI(gameData);
-            Log.i(TAG, "savedList: "+savedDataList);
             saveGameData(gameData);
+            solvedPuzzleUI(gameData);
         }
     }
 
@@ -864,6 +872,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                 return true;
             }
 
+            // TODO: code from stackoverflow, can change, just is simple method to register anything resembling a swipe
             final int DISTANCE_THRESHOLD = dpToPx(11);  // ~1/3 the cell size
             final int VELOCITY_THRESHOLD = 200;  // TODO: change value if unhappy with sensitivity
             int gridSize = (int)Math.sqrt(gridCells.size());

@@ -12,7 +12,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 
 import java.util.ArrayList;
 
@@ -80,7 +79,7 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
         @Override
         public void onClick(View v) {
             Log.i(TAG, "mSelectedImage: "+mSelectedImage);
-            // clear all views selection colour before checking for new selection
+            // clear all views to remove potential previous selection before checking for new selection
             for (ConstraintLayout view: recyclerViews) {
                 //TODO: just uncolour selected holder?
                 view.setBackground(null);
@@ -127,9 +126,6 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
     // set image view to corresponding drawable in dataset
     @Override
     public void onBindViewHolder(@NonNull final myViewHolder holder, int position) {
-        //TODO: a switch from one adapter for the recyclerView removes the selection,
-        // if the game is started then go back to main then that puzzle becomes default
-
         // set the image for the item based on the position in adapter...as holders are recycled it will be set each bind
         if (mDrawablePhotos != null) {  // instance displaying app photos will have an object for mDrawablePhotos
             Log.i(TAG, "onBindViewHolder: photos");
