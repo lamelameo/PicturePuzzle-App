@@ -152,7 +152,6 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
                 holder.mPreviewLayout.setBackground(null);
             }
         }
-
     }
 
     @Override

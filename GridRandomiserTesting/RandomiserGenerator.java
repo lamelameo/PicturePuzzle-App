@@ -11,7 +11,7 @@ public class RandomiserGenerator {
             System.out.println(s);
         }
         // set parameters for creating dataset
-        int numGenerated = 100000;
+        int numGenerated = 1000;
         int gridSize = 9;  // NOTE: use gridsize not cols
         // create File object and check if the file exists already, to add modifier if necessary so no conflict occurs
         File generatedFile = new File("gridsize("+gridSize+")_numgrids("+numGenerated+").txt");

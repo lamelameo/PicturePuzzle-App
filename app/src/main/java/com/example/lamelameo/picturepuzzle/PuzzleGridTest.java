@@ -849,7 +849,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     /**
      * Handle simple touch events as either a swipe (up/down/left/right) or a click - multi touch is not supported.
      * Swipe direction is determined by distance travelled in the x/y planes between touch/release and its release velocity.
-     * Distance and velocity must be greater than @DISTANCE_THRESHOLD and @VELOCITY_THRESHOLD, respectively, to be valid.
+     * Distance and velocity must be greater than DISTANCE_THRESHOLD and VELOCITY_THRESHOLD, respectively, to be valid.
      * An event that doesn't fit any of the set criteria is considered a click and handed to the onClick listener. */
     private View.OnTouchListener swipeListener = new View.OnTouchListener() {
         @Override

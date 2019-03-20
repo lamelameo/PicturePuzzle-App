@@ -178,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
         };
 
         File imageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File[] storedImages = imageDir.listFiles();
+        File[] storedImages = imageDir.listFiles();  //TODO: why warning
         final ArrayList<Drawable> savedPhotos = new ArrayList<>();
         final ArrayList<String> photoPaths = new ArrayList<>();
         float density = getResources().getDisplayMetrics().density;

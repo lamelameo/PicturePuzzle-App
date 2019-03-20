@@ -58,7 +58,7 @@ def analyse_dataset(dataset_file, grid_size):
     plt.xlabel("Index of list in dataset")
     plt.ylabel("Frequency of unique lists")
     plt.show()
-    plt.hist(freq_sorted_series, bins=15)
+    plt.hist(freq_sorted_series, bins=20)
     plt.title("Histogram to display the spread of different frequencies of\n unique lists from a dataset"
               " of " + str(counter) + " generated lists")
     plt.xlabel("Unique frequency values")
