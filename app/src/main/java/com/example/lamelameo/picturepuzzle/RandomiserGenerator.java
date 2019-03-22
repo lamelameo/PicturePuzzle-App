@@ -4,6 +4,11 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Random;
 
+/**
+ * Call a copy of the function {@link #randomiseGrid} from {@link PuzzleGridTest} a given amount of times and record
+ * the return values (a String representing a unique solvable grid for the app) in a plain text file saved in the
+ * folder @GridRandomiserTesting/test data with a given file name
+ */
 public class RandomiserGenerator {
 
     public static void main(String[] args) throws IOException {
@@ -11,18 +16,19 @@ public class RandomiserGenerator {
             System.out.println(s);
         }
         // set parameters for creating dataset
-        int numGenerated = 1000;
+        int numGenerated = 1;
         int gridSize = 9;  // NOTE: use gridsize not cols
         // create File object and check if the file exists already, to add modifier if necessary so no conflict occurs
-        File generatedFile = new File("gridsize("+gridSize+")_numgrids("+numGenerated+").txt");
-        if (generatedFile.exists()) {
+        String fileName = "gridsize("+gridSize+")_numgrids("+numGenerated+")";
+        String folderPath = "..\\GridRandomiserTesting\\test data\\";
+        File generatedFile = new File(folderPath + fileName+".txt");
+        int copyDistinguisher = 0;
+        while (generatedFile.exists()) {  // add suffix term to avoid conflict
             System.out.println("file already exists");
-            // TODO: change filename to avoid overwriting old one
-//            int stuff = 0;
-//            generatedFile = new File("gridsize("+gridSize+") numgrids("+numGenerated+")"+stuff+".txt");
-        } else {
-            System.out.println("made file");
+            copyDistinguisher += 1;
+            generatedFile = new File(folderPath + fileName + "_copy(" + copyDistinguisher + ").txt");
         }
+        System.out.println("made file");
         // create the File in current folder using given name, and call randomiser function to generate grids which are
         // written to the file, each as a String of values separated by commas and a newline ("\n")
         boolean bool = generatedFile.createNewFile();
@@ -49,8 +55,6 @@ public class RandomiserGenerator {
         // initialise objects and set variables
         ArrayList<Integer> randomisedGrid = new ArrayList<>();
         ArrayList<Integer> posPool = new ArrayList<>();
-        // list of ascending values from 0 - size of grid used for tracking values tested for inversions
-//        ArrayList<Integer> unTestedValues = new ArrayList<>();
 
         while (true) {  // create randomised grid, check if solvable, then break if it is
             // initialise variables for start of each loop
@@ -62,7 +66,6 @@ public class RandomiserGenerator {
 
             // randomise grid and create list with outcome
             for (int x=0; x<gridSize; x++) {
-//                unTestedValues.add(x);
                 if (x == gridSize-1) {  // add last index to last in list to ensure it is empty
                     randomisedGrid.add(gridSize-1);
                 } else {
