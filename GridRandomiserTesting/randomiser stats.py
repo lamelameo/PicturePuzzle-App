@@ -11,16 +11,52 @@ table_max_freq = []
 table_med_freq = []
 
 
+def analyse_table_data(data_file):
+    # open the file containing the data and add each value from each line to the corresponding list
+    # the lists are used to construct a dataframe which is used to determine some statistics and display plots
+    grids = []
+    frequencies = []
+    num_grids = 0
+    with open(data_file, 'r') as grid_dataset:
+        # take the grid string and frequency and append each into their corresponding list to be used for analysis
+        for line in grid_dataset:
+            # get indexes of the characters separating the grid string and frequency string and slice each line
+            string_end_index = line.find(" ")
+            newline_index = line.find("\\")
+            grid_string = line[:string_end_index]  # get the grid
+            print(grid_string)
+            frequency = line[string_end_index + 1:newline_index]  # get the frequency
+            print(frequency)
+            num_grids += int(frequency)  # count number of grids in dataset using frequency values
+            # add values to lists
+            grids.append(grid_string)
+            frequencies.append(int(frequency))
+            print(num_grids)
+    grid_dataset.close()  # think with closes the file but kept this anyway...
+
+    # display data in scatter plots and histogram
+    df = pd.DataFrame({"grid": grids, "frequency": frequencies})
+    freq_sorted_series = df['frequency'].sort_values()
+    print(df.describe())
+    # plt.scatter(df.index, df['frequency'], 0.5)
+    # plt.show()
+    plt.hist(freq_sorted_series, bins=19)
+    plt.show()
+
+
+analyse_table_data("randomiser datasets/gridsize(9)_numgrids(10000000)_tableform.txt")
+
+
 def analyse_dataset(dataset_file, grid_size):
-    # open the file containing the data and create dictionary with results
+    # open the file containing the data and create array with results
     unique_grids = dict()
+    counter = 0
     with open(dataset_file, 'r') as grid_dataset:
         # Use a dictionary to accumulate unique grids and their frequencies to be used for data analysis. Dict is a
         # good option as searching for unique grids is fast. Each grid, which is a in the dataset (txt file), is used
         # as a key for the dictionary. If there is no value associated with it yet, then the value is set to 1. If
         # there is, then increment the value by 1. Thus, every unique grid from the dataset is a key in the dictionary,
         # and the associated value is the frequency of that grid being generated.
-        counter = 0
         for line in grid_dataset:
             # if no key in dict for that grid, add it and set value to 1 for the frequency
             if unique_grids.get(line) is None:
@@ -69,6 +105,7 @@ def analyse_dataset(dataset_file, grid_size):
     # plt.ylabel("Frequency of unique lists")
     # plt.show()
 
+    # plt.hist(freq_sorted_series, bins=30)
     # plt.title("Histogram to display the spread of different frequencies of\n unique lists from a dataset"
     #           " of " + str(counter) + " generated lists")
     # plt.xlabel("Unique frequency values")
@@ -108,18 +145,27 @@ def analyse_dataset(dataset_file, grid_size):
     # inversions by set amount? think of an unsolvable puzzle in closest to solved
     # position, there will be 13, 15, 14, _ in last row, meaning 1 is out of place and only requires one swap
 
+    # Testing Chi Squared goodness of fit statistic for frequency of unique grids:
+    # X^2 = sum((observed-expected)^2 / expected)
+    chi_squared = 0
+    expected_frequency = counter/num_solvable_combinations  # num grids generated/num possible unique grids
+    print(expected_frequency)
+    for grid in unique_grids:
+        chi_squared += ((unique_grids[grid] - expected_frequency)**2)/expected_frequency
+    print("\nchi squared: " + str(chi_squared))
+
 
 # analyse_dataset("randomiser datasets/gridsize(9)_numgrids(10000000).txt", 8)
-for x in range(10):
-    analyse_dataset("randomiser datasets/gridsize(9)_numgrids(1000000)_copy("+str(x)+").txt", 8)
-data_table = pd.DataFrame(data={"min grid": table_min_freq,
-                                "max grid": table_max_freq, "med grid": table_med_freq})
-print()
-print(data_table)
-print()
-print("max grid mean frequency: ", data_table['max grid'].mean())
-print("min grid mean frequency: ", data_table['min grid'].mean())
-print("med grid mean frequency: ", data_table['med grid'].mean())
+# for x in range(10):
+#     analyse_dataset("randomiser datasets/gridsize(9)_numgrids(1000000)_copy("+str(x)+").txt", 8)
+# data_table = pd.DataFrame(data={"min grid": table_min_freq,
+#                                 "max grid": table_max_freq, "med grid": table_med_freq})
+# print()
+# print(data_table)
+# print()
+# print("max grid mean frequency: ", data_table['max grid'].mean())
+# print("min grid mean frequency: ", data_table['min grid'].mean())
+# print("med grid mean frequency: ", data_table['med grid'].mean())
 
 
 def use_list():

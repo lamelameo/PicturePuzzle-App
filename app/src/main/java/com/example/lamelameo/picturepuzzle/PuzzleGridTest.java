@@ -245,7 +245,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         fragmentTrans.commit();
     }
 
-    private long startTime;
+//    private long startTime;
     private long tickRemainder = 0;
     private long prevTickTime = 0;
 
@@ -260,7 +260,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
      */
     private void startTimer() {
         // save the system time for clock start to determine the delay for resumes
-        startTime = SystemClock.uptimeMillis() + tickRemainder;
+//        startTime = SystemClock.uptimeMillis() + tickRemainder;
         // start runnable with a delay of 1 second, with initial delay as remaining milliseconds to complete the tick before pause
         timerFuture = timerExecutor.scheduleAtFixedRate(timerRunnable, tickRemainder, 1000, TimeUnit.MILLISECONDS);
     }
@@ -620,7 +620,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
             for(int y=0; y<rows; y++) {
                 // loop through 4 positions in row incrementing the x value to start bitmap at
                 float xpos = y*cellSize;
-                Bitmap gridImage = Bitmap.createBitmap(bmp, (int)xpos, (int)ypos, (int)cellSize, (int)cellSize);
+                Bitmap gridImage = Bitmap.createBitmap(bmp, (int)xpos, (int)ypos, cellSize, cellSize);
                 // converted to drawable for use of setImageDrawable to easily swap cell images
                 Drawable drawable = new BitmapDrawable(getResources(), gridImage);
                 bitmaps.add(drawable);

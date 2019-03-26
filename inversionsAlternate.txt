@@ -12,6 +12,8 @@ for (int index=0; index<gridSize-1; index++) {
     // create variables for the current index to keep a track of each pair as we can stop searching if:
     // found all the possible pairs of A>B (all possible inversions found) or A<B (all non inversions found)
     // maxInversions = currentNum, maxNonInversions = gridSize - 1 - currentNum;
+    // TODO: tracking will only save loops if num invs/non is less than number of loops (checks) left
+    // for 1st half: (inv/non inv) < index  |  for 2nd half: (invs/non invs) <  gridSize - 1 - index - 1
 
     if (index <= gridSize/2) {  // if we are in 1st half of list (rounds down, ie 19/2 = 8.5 -> 8)
         // initialise invs/non to their max values and decrement them as we check through prev values

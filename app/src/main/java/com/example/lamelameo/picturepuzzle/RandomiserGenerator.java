@@ -2,12 +2,18 @@ package com.example.lamelameo.picturepuzzle;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 /**
  * Call a copy of the function {@link #randomiseGrid} from {@link PuzzleGridTest} a given amount of times and record
  * the return values (a String representing a unique solvable grid for the app) in a plain text file saved in the
  * folder @GridRandomiserTesting/test data with a given file name
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                                                  UPDATED
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Modified to create a HashMap to count frequency of each unique grid then write the grid names and frequency to the file.
+ * This makes the files much smaller size, and means less work to do in the python script to analyse the data
  */
 public class RandomiserGenerator {
 
@@ -16,10 +22,10 @@ public class RandomiserGenerator {
             System.out.println(s);
         }
         // set parameters for creating dataset
-        int numGenerated = 1;
+        int numGenerated = 10000;
         int gridSize = 9;  // NOTE: use gridsize not cols
         // create File object and check if the file exists already, to add modifier if necessary so no conflict occurs
-        String fileName = "gridsize("+gridSize+")_numgrids("+numGenerated+")";
+        String fileName = "gridsize("+gridSize+")_numgrids("+numGenerated+")_tableform";
         String folderPath = "..\\GridRandomiserTesting\\test data\\";
         File generatedFile = new File(folderPath + fileName+".txt");
         int copyDistinguisher = 0;
@@ -28,26 +34,48 @@ public class RandomiserGenerator {
             copyDistinguisher += 1;
             generatedFile = new File(folderPath + fileName + "_copy(" + copyDistinguisher + ").txt");
         }
-        System.out.println("made file");
+        long startTime = System.currentTimeMillis();
+        System.out.println("writing to file...");
         // create the File in current folder using given name, and call randomiser function to generate grids which are
         // written to the file, each as a String of values separated by commas and a newline ("\n")
         boolean bool = generatedFile.createNewFile();
         FileWriter writer = new FileWriter(generatedFile);
         Random random = new Random();
         StringBuilder stringBuilder = new StringBuilder();
+
+        String gridString;
+        Integer gridFrequency;
         // randomly generate the set amount of (solvable) grids using the randomise function
         // convert to string, append to stringbuilder, and write the stringBuilder contents to the file with a FileWriter
         // TODO: analyse the data all within this file, rather than using python?
+        // Use HashMap to determine unique grids and frequencies and only write this data to the file
+        HashMap<String, Integer> frequencyTable = new HashMap<>();  // can set initial capacity to num combinations?
         for (int i = 0; i < numGenerated; i++) {
+            StringBuilder gridBuilder = new StringBuilder();
             for (Integer num: randomiseGrid(gridSize, random)) {
-                stringBuilder.append(num.toString()).append(",");
+//                stringBuilder.append(num.toString()).append(",");
+                gridBuilder.append(num.toString()).append(",");
             }
-            stringBuilder.append("\n");
+//            stringBuilder.append("\n");
+            gridString = gridBuilder.toString();
+            gridFrequency = frequencyTable.get(gridString);
+            if (gridFrequency == null) {  // if no key value pair for that unique grid, set it with value 1
+                frequencyTable.put(gridString, 1);
+            } else {  // there is a key for that grid already, so get its value (frequency) and increment it by 1
+                gridFrequency += 1;
+                frequencyTable.put(gridString, gridFrequency);
+            }
+        }
+        // create file contents with stringBuilder in the form: gridString, frequency\n
+        for (String uniqueGrid: frequencyTable.keySet()) {
+            stringBuilder.append(uniqueGrid).append(" ").append(frequencyTable.get(uniqueGrid)).append("\n");
         }
         writer.append(stringBuilder.toString());
         writer.flush();
         writer.close();
 
+        long elapsedTimeSecs = (System.currentTimeMillis() - startTime)/1000;
+        System.out.println("File Written. Time taken(secs): " + elapsedTimeSecs);
     }
 
     // function which generates a random solvable n x n grid of integers 1 - (n x n - 1) in list form (l->r, t->b)
