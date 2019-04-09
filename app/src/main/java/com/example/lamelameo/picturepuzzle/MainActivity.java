@@ -27,95 +27,13 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
-    private String TAG = "MainActivity";
+    private static final String TAG = "MainActivity";
     private RecyclerView mRecyclerView;
     private ImageView mCameraView;
     private String mCurrentPhotoPath;
 //    private Drawable[] puzzleImages;
     private int mGridRows;
     private boolean defaultAdapter;
-
-    /**
-     * Creates and invokes an Intent to take a photo using the camera
-     */
-    private void dispatchTakePictureIntent() {
-        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // Check there is a camera activity
-        if (cameraIntent.resolveActivity(getPackageManager()) != null) {
-            // Create a File to save the photo into
-            File photoFile = null;
-            try {
-                photoFile = createImageFile();
-            } catch (IOException ex) {  // error when making file
-                ex.printStackTrace();
-            }
-            // if successful in creating File, save the photo into it
-            if (photoFile != null) {
-                Uri photoURI = FileProvider.getUriForFile(this, "com.example.android.fileprovider", photoFile);
-                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(cameraIntent, 1);
-            }
-        }
-    }
-
-    /**
-     * Save the full sized image taken from camera to an app private directory that is deleted if app is removed
-     * @return a File to store a photo taken with the camera intent
-     * @throws IOException error when making File
-     */
-    private File createImageFile() throws IOException {
-//        Locale locale = ConfigurationCompat.getLocales(Resources.getSystem().getConfiguration());
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(imageFileName, ".jpg", storageDir);
-        mCurrentPhotoPath = image.getAbsolutePath();
-        return image;
-    }
-
-    /**
-     * Gets the image taken with the camera intent as a Bitmap to display in an ImageView {@link #mCameraView} as a preview
-     * @param requestCode request code is 1 for our camera intent
-     * @param resultCode RESULT_OK means we got a photo, RESULT_CANCELLED means no photo
-     * @param data returns result data from the camera Intent we used, can use getExtras to obtain this
-     */
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if  (requestCode == 1) {  // result from camera intent
-            if (resultCode == RESULT_OK) {  // got a photo back from camera
-                // create the image preview and add to phones gallery
-                mCameraView.setImageDrawable(scalePhoto(mCameraView.getWidth(), mCurrentPhotoPath));
-                addPicGallery();
-            } else {  // didnt get a return value (no photo)
-                // clear file at photopath or will get errors reopening app as there are empty files with no pic stored
-                try {
-                    boolean deleteTempFile = new File(mCurrentPhotoPath).delete();
-                    Log.i(TAG, "deleted temp photo file: "+deleteTempFile);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Log.i(TAG, "tried to delete temp file on no result camera exit, but got error");
-                }
-                // clear photopath or will get errors trying to access null image in game activity
-                Log.i(TAG, "no photo-resultCode: " + resultCode);
-                mCurrentPhotoPath = null;
-            }
-        }
-    }
-
-    /**
-     * Method to save a picture taken from this app into the device's gallery
-     */
-    private void addPicGallery() {
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        File f = new File(mCurrentPhotoPath);
-        Uri contentUri = Uri.fromFile(f);
-        mediaScanIntent.setData(contentUri);
-        this.sendBroadcast(mediaScanIntent);
-        // directory for gallery images
-//        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-        //TODO: this method doesnt work??
-    }
 
     /**
      * Scale an image to the size of a view, and rotate 90 degrees to obtain the image in portrait orientation
@@ -178,18 +96,23 @@ public class MainActivity extends AppCompatActivity {
         };
 
         File imageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File[] storedImages = imageDir.listFiles();  //TODO: why warning
+        File[] storedImages = imageDir.listFiles();  //TODO: why warning - even when no files no exception
         final ArrayList<Drawable> savedPhotos = new ArrayList<>();
         final ArrayList<String> photoPaths = new ArrayList<>();
         float density = getResources().getDisplayMetrics().density;
         long recyclerViewPx = Math.round(150 * density);
         for (File file : storedImages) {
-            Log.i(TAG, "onCreate:file "+file.getName());
-            String imagePath = file.getAbsolutePath();
-            photoPaths.add(imagePath);
-            Drawable imageBitmap = scalePhoto((int)recyclerViewPx, imagePath);
+            if (file.length() == 0) {  // checks for empty files and deletes them
+                boolean deletedFile = file.delete();
+                Log.i(TAG, "onCreate:fileDeleted? "+deletedFile);
+            } else {  // TODO: could have wrong file types?
+                Log.i(TAG, "onCreate:file "+file.getName());
+                String imagePath = file.getAbsolutePath();
+                photoPaths.add(imagePath);
+                Drawable imageBitmap = scalePhoto((int)recyclerViewPx, imagePath);
 //            Drawable drawable = BitmapDrawable.createFromPath(imagePath);
-            savedPhotos.add(imageBitmap);
+                savedPhotos.add(imageBitmap);
+            }
         }
 
         mRecyclerView = findViewById(R.id.pictureRecyclerView);
@@ -229,21 +152,19 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // take a photo from camera and get pic
-        mCameraView = findViewById(R.id.photoView);
-        ImageButton cameraButton = findViewById(R.id.cameraButton);
-        cameraButton.setOnClickListener(new View.OnClickListener() {
+        // move to cropper activity to crop gallery images or take photo with camera
+        Button cameraGalleryButton = findViewById(R.id.photoCropButton);
+        final Intent cropperIntent = new Intent(this, PhotoCropping.class);
+        cameraGalleryButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // open camera and take photo and send preview to framelayout
-                dispatchTakePictureIntent();
-
+                startActivity(cropperIntent);
             }
         });
 
         //TODO: use to change overlay of photo previews... setForeground requires higher min SDK
-        final int[] gridOverlays = {R.drawable.gridoverlay3, R.drawable.gridoverlay4,
-                R.drawable.gridoverlay5, R.drawable.gridoverlay6};
+//        final int[] gridOverlays = {R.drawable.gridoverlay3, R.drawable.gridoverlay4,
+//                R.drawable.gridoverlay5, R.drawable.gridoverlay6};
 
         // set gridsize based on the checked radio button, this value will be used as an intent extra when starting the game
         final RadioGroup setGrid = findViewById(R.id.setGrid);
@@ -307,6 +228,13 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(gameIntent);  // start game activity
             }
         });
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        //TODO: must update recycler view adapter for photos, as new photos may have been loaded
 
     }
 }

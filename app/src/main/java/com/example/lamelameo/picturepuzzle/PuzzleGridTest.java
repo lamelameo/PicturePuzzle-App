@@ -20,8 +20,8 @@ import java.util.concurrent.*;
 
 public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFragmentInteractionListener {
 
+    private static final String TAG = "PuzzleGridTest";
     private ArrayList<Drawable> bitmaps = new ArrayList<>();
-    private String TAG = "PuzzleGridTest";
     private ArrayList<ArrayList<ImageView>> cellRows, cellCols;
     private ArrayList<ImageView> gridCells;
     private int emptyCellIndex;
@@ -514,7 +514,6 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
 
             // randomise grid and create list with outcome
             for (int x=0; x<gridSize; x++) {
-//                unTestedValues.add(x);
                 if (x == gridSize-1) {  // add last index to last in list to ensure it is empty
                     randomisedGrid.add(gridSize-1);
                 } else {
@@ -540,21 +539,6 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                     }
                 }
             }
-
-            //TODO: alternate method to count inversions, faster or slower? above is n(n-1)/2 for n size grid (sum nat nums)
-
-//            // index of the current value being tested in the ordered values = how many lesser values have a greater
-//            // index than it and therefore how many inversions there are for this value - if we remove tested values
-//            // as we go, the order remains but possible inversions are removed
-//            int inversions = 0;
-//            for (int index=0; index<gridSize-1; index++) {  // test all grid cells for pairs with higher index cells
-//                int currentNum = randomisedGrid.get(index);  // O(1) to access in array
-//                int numInvs = unTestedValues.indexOf(currentNum);  // O(logn) to find value in sorted array
-//                inversions += numInvs;
-//                // remove current num before next loop, use its index so no search is needed
-//                unTestedValues.remove(numInvs);  // O(n) to remove item at current index in sorted array
-//            }
-//            unTestedValues.remove(0);  // remove the last remaining value as we dont loop anymore
 
             Log.i(TAG, "randomiseGrid: inversions "+inversions);
             // if randomised grid is solvable then break the while loop and return that grid - else next loop creates new grid
@@ -631,7 +615,6 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     /**
      * Determine if grid is solved by iterating through all cells to check if the cell position matches the set image
      * cell tag[0] gives position, tag[1] is the image index, if they are the same then image is in correct cell
-     * displays a Toast message if the grid is solved
      * @return a boolean which indicates whether the grid is solved or not
      */
     private boolean gridSolved() {

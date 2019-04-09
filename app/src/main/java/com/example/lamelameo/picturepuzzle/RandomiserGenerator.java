@@ -78,6 +78,20 @@ public class RandomiserGenerator {
         System.out.println("File Written. Time taken(secs): " + elapsedTimeSecs);
     }
 
+    public int countSheeps(Boolean[] arrayOfSheeps) {
+        int numSheep = 0;
+        for (int i = 0; i < arrayOfSheeps.length; i++) {
+            try {
+                if (arrayOfSheeps[i]) {
+                    numSheep += 1;
+                }
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return numSheep;
+    }
+
     // function which generates a random solvable n x n grid of integers 1 - (n x n - 1) in list form (l->r, t->b)
     private static ArrayList<Integer> randomiseGrid(int gridSize, Random random) {
         // initialise objects and set variables

@@ -7,7 +7,7 @@
         android:required="true" />
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
     <application
         android:allowBackup="true"
@@ -24,6 +24,13 @@
             </intent-filter>
         </activity>
         <activity android:name=".game_test" />
+        <activity android:name=".PuzzleGridTest" />
+        <activity android:name=".PhotoCropping" >
+            <!--<intent-filter>-->
+                <!--<action android:name="android.media.action.CROP" />-->
+                <!--<category android:name="android.intent.category.DEFAULT" />-->
+            <!--</intent-filter>-->
+        </activity>
 
         <provider
             android:name="android.support.v4.content.FileProvider"
@@ -35,7 +42,6 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <activity android:name=".PuzzleGridTest"></activity>
     </application>
 
 </manifest>

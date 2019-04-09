@@ -16,6 +16,8 @@ import android.view.ViewGroup;
 import java.util.ArrayList;
 
 public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdapter.myViewHolder> {
+
+    private static final String TAG = "ImageRecyclerAdapter";
     private ArrayList<Drawable> mDrawablePhotos;
     private Intent mIntent;
     private int[] mDrawableInts;
@@ -24,7 +26,6 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
     private static int mSelectedImage = -1;
     private static int mSelectedPhoto = -1;
     private static boolean isDefaultImages = true;
-    private String TAG = "ImageRecyclerAdapter";
     private ArrayList<ConstraintLayout> recyclerViews = new ArrayList<>();
 
     // constructor takes array of drawables resource integers (default images)

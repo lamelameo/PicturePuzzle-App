@@ -61,3 +61,18 @@ for (int index=0; index<gridSize-1; index++) {
         }
     }
 }
+
+//TODO: alternate method to count inversions, faster or slower? above is n(n-1)/2 for n size grid (sum nat nums)
+
+//            // index of the current value being tested in the ordered values = how many lesser values have a greater
+//            // index than it and therefore how many inversions there are for this value - if we remove tested values
+//            // as we go, the order remains but possible inversions are removed
+//            int inversions = 0;
+//            for (int index=0; index<gridSize-1; index++) {  // test all grid cells for pairs with higher index cells
+//                int currentNum = randomisedGrid.get(index);  // O(1) to access in array
+//                int numInvs = unTestedValues.indexOf(currentNum);  // O(logn) to find value in sorted array
+//                inversions += numInvs;
+//                // remove current num before next loop, use its index so no search is needed
+//                unTestedValues.remove(numInvs);  // O(n) to remove item at current index in sorted array
+//            }
+//            unTestedValues.remove(0);  // remove the last remaining value as we dont loop anymore

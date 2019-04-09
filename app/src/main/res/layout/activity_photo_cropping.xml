@@ -2,24 +2,35 @@
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent" android:layout_height="match_parent">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".PhotoCropping">
 
     <ImageView
-        android:id="@+id/imageView2"
-        android:layout_width="250dp"
-        android:layout_height="250dp"
-        android:layout_marginBottom="8dp"
+        android:id="@+id/photoView"
+        android:layout_width="252dp"
+        android:layout_height="333dp"
+        android:layout_marginBottom="48dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="44dp"
-        android:contentDescription="@string/take_pic"
-        android:foreground="@drawable/gridoverlay4"
+        android:background="@color/Zima_Blue"
+        android:src="@color/Zima_Blue"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/radioGroup"
-        app:layout_constraintVertical_bias="0.437"
-        app:srcCompat="@android:color/darker_gray" />
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageView
+        android:id="@+id/cropView"
+        android:layout_width="252dp"
+        android:layout_height="252dp"
+        android:foreground="@drawable/gridoverlay4"
+        app:layout_constraintBottom_toBottomOf="@+id/photoView"
+        app:layout_constraintEnd_toEndOf="@+id/photoView"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/photoView"
+        app:layout_constraintTop_toBottomOf="@+id/upArrow"
+        app:layout_constraintVertical_bias="0.518"
+        app:srcCompat="@android:color/transparent" />
 
     <RadioGroup
         android:id="@+id/radioGroup"
@@ -27,6 +38,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.588"
@@ -68,7 +80,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:text="@string/grid_size"
         android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -79,46 +91,28 @@
         android:id="@+id/upArrow"
         android:layout_width="46.5dp"
         android:layout_height="44dp"
-        android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
         android:contentDescription="@string/move_arrows"
-        app:layout_constraintBottom_toTopOf="@+id/imageView2"
+        app:layout_constraintBottom_toTopOf="@+id/photoView"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.501"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/radioGroup"
-        app:layout_constraintVertical_bias="0.955"
-        app:srcCompat="@drawable/uarrow" />
+        android:src="@drawable/uarrow" />
 
     <ImageView
         android:id="@+id/rightArrow"
         android:layout_width="44dp"
         android:layout_height="46.5dp"
+        android:layout_marginBottom="196dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="300dp"
         android:contentDescription="@string/move_arrows"
+        android:src="@drawable/rarrow"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toEndOf="@+id/imageView2"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/rarrow" />
-
-    <ImageView
-        android:id="@+id/leftArrow"
-        android:layout_width="44dp"
-        android:layout_height="46.5dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="300dp"
-        android:contentDescription="@string/move_arrows"
-        app:layout_constraintEnd_toStartOf="@+id/imageView2"
         app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/larrow" />
+        app:layout_constraintStart_toEndOf="@+id/photoView" />
 
     <ImageView
         android:id="@+id/downArrow"
@@ -126,44 +120,82 @@
         android:layout_height="44dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
         android:contentDescription="@string/move_arrows"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.501"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/imageView2"
-        app:srcCompat="@drawable/darrow" />
+        app:layout_constraintTop_toBottomOf="@+id/photoView"
+        android:src="@drawable/darrow" />
+
+    <ImageView
+        android:id="@+id/leftArrow"
+        android:layout_width="44dp"
+        android:layout_height="46.5dp"
+        android:layout_marginBottom="192dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:src="@drawable/larrow"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/photoView"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <ImageView
         android:id="@+id/zoomIn"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:layout_marginBottom="64dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/imageView2"
-        app:layout_constraintEnd_toStartOf="@+id/upArrow"
-        app:layout_constraintHorizontal_bias="0.572"
-        app:layout_constraintStart_toStartOf="parent"
+        android:contentDescription="@string/zoom_buttons"
+        app:layout_constraintBottom_toTopOf="@+id/photoView"
+        app:layout_constraintStart_toEndOf="@+id/galleryButton"
         app:layout_constraintTop_toBottomOf="@+id/radioGroup"
         app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@drawable/zoomin" />
+        android:src="@drawable/zoomin" />
 
     <ImageView
         android:id="@+id/zoomOut"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:layout_marginBottom="64dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/imageView2"
+        android:contentDescription="@string/zoom_buttons"
+        app:layout_constraintBottom_toTopOf="@+id/photoView"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.421"
-        app:layout_constraintStart_toEndOf="@+id/upArrow"
+        app:layout_constraintHorizontal_bias="0.066"
+        app:layout_constraintStart_toEndOf="@+id/zoomIn"
         app:layout_constraintTop_toBottomOf="@+id/radioGroup"
         app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@drawable/zoomout" />
+        android:src="@drawable/zoomout" />
+
+    <ImageView
+        android:id="@+id/takePhoto"
+        android:layout_width="52dp"
+        android:layout_height="45dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginStart="80dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/photoView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/radioGroup"
+        app:layout_constraintVertical_bias="0.0"
+        android:src="@android:drawable/ic_menu_camera" />
+
+    <Button
+        android:id="@+id/galleryButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/gallery_images"
+        app:layout_constraintBottom_toTopOf="@+id/upArrow"
+        app:layout_constraintStart_toEndOf="@+id/takePhoto"
+        app:layout_constraintTop_toBottomOf="@+id/radioGroup"
+        app:layout_constraintVertical_bias="1.0" />
+
 
 </android.support.constraint.ConstraintLayout>
