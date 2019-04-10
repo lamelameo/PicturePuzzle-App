@@ -1,15 +1,10 @@
 package com.example.lamelameo.picturepuzzle;
 
 import android.content.Intent;
-import android.content.res.Resources;
 import android.graphics.*;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Environment;
-import android.provider.MediaStore;
-import android.support.annotation.Nullable;
-import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -19,11 +14,7 @@ import android.view.View;
 import android.widget.*;
 
 import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -51,13 +42,8 @@ public class MainActivity extends AppCompatActivity {
         int scaleFactor = Math.min(photoW/viewSize, photoH/viewSize);
         bmOptions.inJustDecodeBounds = false;
         bmOptions.inSampleSize = scaleFactor;
-
-        // rotate image to correct orientation - default is landscape
-        Matrix matrix = new Matrix();
-        matrix.postRotate(90);
         Bitmap bitmap = BitmapFactory.decodeFile(photopath, bmOptions);
-        Bitmap scaledBmp = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-        return new BitmapDrawable(getResources(), scaledBmp);
+        return new BitmapDrawable(getResources(), bitmap);
     }
 
     /**
@@ -69,25 +55,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-//        Field[] drawableFields = com.example.lamelameo.picturepuzzle.R.drawable.class.getFields();
-//        ArrayList<Drawable> defaultImages = new ArrayList<>();
-//        Drawable[] puzzleImages = new Drawable[12];
-//        int counter = 0;
-//        for (Field field : drawableFields) {
-//            try {
-//                String fieldName = field.getName();
-////                Log.i(TAG, "onCreate: "+fieldName);
-//                if (fieldName.startsWith("dfdf")) {
-//                    defaultImages.add(getResources().getDrawable(field.getInt(null)));
-//                    puzzleImages[counter] = getResources().getDrawable(field.getInt(null));
-//                    counter+=1;
-//                }
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        }
-//        Log.i(TAG, "onCreate: "+defaultImages);
 
         final int[] drawableInts = {
                 R.drawable.dfdfdefaultgrid, R.drawable.dfdfcarpet, R.drawable.dfdfcat, R.drawable.dfdfclock,

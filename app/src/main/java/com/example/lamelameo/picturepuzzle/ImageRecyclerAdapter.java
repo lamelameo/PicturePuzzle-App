@@ -76,6 +76,8 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
         }
     }
 
+    //TODO: MORE SELECTION BUGS....???
+
     private View.OnClickListener recyclerViewListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {

@@ -16,14 +16,9 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.Toast;
+import android.widget.*;
 
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -33,6 +28,7 @@ public class PhotoCropping extends Activity {
     private static final String TAG = "PhotoCropping";
     private ImageView mCameraView, cropView;
     private String mCurrentPhotoPath;
+    private int mGridRows = 4;
     private static final int REQUEST_IMAGE_CAPTURE = 1;
     private static final int REQUEST_GALLERY_SELECT = 0;
     private static final int CAMERA_CROP_RESULT = 2;
@@ -47,19 +43,49 @@ public class PhotoCropping extends Activity {
 
         // Buttons
         ImageView photoCropView = findViewById(R.id.cropView);
-        ImageView photoView = findViewById(R.id.photoView);
-        mCameraView = photoView;
-        ImageView zoomIn = findViewById(R.id.zoomIn);
-        ImageView zoomOut = findViewById(R.id.zoomOut);
+//        ImageView photoView = findViewById(R.id.photoView);
+        mCameraView = photoCropView;
+        ImageView rotateRight = findViewById(R.id.rotateRight);
+        ImageView rotateLeft = findViewById(R.id.rotateLeft);
+        rotateRight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+               rotatePhoto(90);
+            }
+        });
+        rotateLeft.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                rotatePhoto(270);
+            }
+        });
+
+        Button startGame = findViewById(R.id.startGame);
+        final Intent gameIntent = new Intent(this, PuzzleGridTest.class);
+        startGame.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mCurrentPhotoPath != null) {
+                    //TODO: save photo only on game start as this means user wants photo?
+                    gameIntent.putExtra("photoPath", mCurrentPhotoPath);
+                    gameIntent.putExtra("puzzleNum", -1);
+                    gameIntent.putExtra("numColumns", mGridRows);
+                    startActivity(gameIntent);
+                } else {
+                    Toast photoToast = new Toast(getApplicationContext());
+                    photoToast.setText("Take a photo or choose one from Gallery.");
+                    photoToast.show();
+                }
+            }
+        });
+
         ImageView cameraButton = findViewById(R.id.takePhoto);
         Button galleryButton = findViewById(R.id.galleryButton);
-        ImageView[] moveArrows = {findViewById(R.id.upArrow), findViewById(R.id.downArrow),
-                                  findViewById(R.id.leftArrow), findViewById(R.id.rightArrow)};
         cropView = photoCropView;
-        Log.i(TAG, "onCreate photoY: "+photoView.getY());
-        Log.i(TAG, "onCreate photoH: "+photoView.getHeight());
-        photoXBounds = photoView.getX() + photoView.getWidth();
-        photoYBounds = photoView.getY() + photoView.getHeight();
+//        Log.i(TAG, "onCreate photoY: "+photoView.getY());
+//        Log.i(TAG, "onCreate photoH: "+photoView.getHeight());
+//        photoXBounds = photoView.getX() + photoView.getWidth();
+//        photoYBounds = photoView.getY() + photoView.getHeight();
 
         // send intent to take photo using camera on button click
         cameraButton.setOnClickListener(new View.OnClickListener() {
@@ -78,7 +104,28 @@ public class PhotoCropping extends Activity {
             }
         });
 
-        moveArrows[1].setOnClickListener(arrowClickListener);
+        //TODO: use to change overlay of photo previews... setForeground requires higher min SDK
+//        final int[] gridOverlays = {R.drawable.gridoverlay3, R.drawable.gridoverlay4,
+//                R.drawable.gridoverlay5, R.drawable.gridoverlay6};
+
+        // set gridsize based on the checked radio button, this value will be used as an intent extra when starting the game
+        final RadioGroup setGrid = findViewById(R.id.radioGroup);
+        setGrid.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                Log.i(TAG, "onCheckedChanged: "+checkedId);
+                for (int x = 0; x<4; x++) {
+                    RadioButton radioButton = (RadioButton)group.getChildAt(x);
+                    if (radioButton.getId() == checkedId) {
+                        mGridRows = x + 3;  // update grid size for use in load button listener in this context
+                        //TODO: set photo previews grid overlay based on checked radio button
+//                        Drawable gridOverlay = getResources().getDrawable(gridOverlays[x], null);
+//                        mCameraView.setForeground(gridOverlay);
+                        break;
+                    }
+                }
+            }
+        });
 
     }
 
@@ -122,13 +169,6 @@ public class PhotoCropping extends Activity {
             }
         }
     };
-
-    private void cropImage() {
-        //TODO: get the xy coords of crop and photo, determine difference, scale/crop photo and save cropped photo
-        //  overwriting the prev file, must also reload recycler view upon moving back to main activity, and allow
-        //  user to go into game with set photo
-        Intent intent = new Intent();
-    }
 
     /**
      * Creates and invokes an Intent to take a photo using the camera
@@ -245,56 +285,44 @@ public class PhotoCropping extends Activity {
     private void dispatchCropIntent(Intent intent, Uri saveUri) {
         intent.putExtra(MediaStore.EXTRA_OUTPUT, saveUri);  // output file uri
         // output smaller photo
-        intent.putExtra("outputX", 300);
-        intent.putExtra("outputY", 300);
+        //TODO: could be too large if user has poor quality camera or it will just scale it and look blurry?
+        intent.putExtra("outputX", 1000);
+        intent.putExtra("outputY", 1000);
         // set aspect ratio to 1:1 for a square image
         intent.putExtra("aspectX", 1);
         intent.putExtra("aspectY", 1);
         intent.putExtra("scale", true);
         intent.putExtra("output", saveUri);
         intent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString());
-        // TODO: HOW TO ROTATE?
         intent.putExtra("noFaceDetection", true);
         startActivityForResult(intent, CAMERA_CROP_RESULT);
     }
 
     /**
-     * Method to save a picture taken from this app into the device's gallery
+     * Rotates the given photo by 90 degrees given a direction of rotation and saves the new image over the old one
+     * @param direction has value of either 90 or 270, determines if the photo rotates right or left, respectively
      */
-    private void addPicGallery() {
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        File f = new File(mCurrentPhotoPath);
-        Uri contentUri = Uri.fromFile(f);
-        mediaScanIntent.setData(contentUri);
-        this.sendBroadcast(mediaScanIntent);
-        // directory for gallery images
-//        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-        //TODO: this method doesnt work??
-    }
-
-    /**
-     * Scale an image to the size of a view, and rotate 90 degrees to obtain the image in portrait orientation
-     * @param viewSize the size of the view for the image to be scaled to
-     * @param photopath the file path of the image to be scaled
-     * @return a Drawable of the given image scaled to a size suitable to fit into the target view
-     */
-    private Drawable scalePhoto(int viewSize, String photopath) {
-        // scale image previews to fit the allocated View to save app memory
-        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-        bmOptions.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(photopath, bmOptions);
-        int photoW = bmOptions.outWidth;
-        int photoH = bmOptions.outHeight;
-        int scaleFactor = Math.min(photoW/viewSize, photoH/viewSize);
-        bmOptions.inJustDecodeBounds = false;
-        bmOptions.inSampleSize = scaleFactor;
-
-        // rotate image to correct orientation - default is landscape
-        Matrix matrix = new Matrix();
-        matrix.postRotate(90);
-        Bitmap bitmap = BitmapFactory.decodeFile(photopath, bmOptions);
-        Bitmap scaledBmp = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-        return new BitmapDrawable(getResources(), scaledBmp);
+    private void rotatePhoto(float direction) {
+        if (mCurrentPhotoPath != null) {
+            // rotate image to correct orientation - default is landscape
+            Matrix matrix = new Matrix();
+            matrix.postRotate(direction);
+            Bitmap bitmap = BitmapFactory.decodeFile(mCurrentPhotoPath);
+            Bitmap rotatedBmp = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+            // update preview and over write the old photo
+            mCameraView.setImageBitmap(rotatedBmp);
+            File rotatedPhoto = new File(mCurrentPhotoPath);
+            try {
+                FileOutputStream fileOutputStream = new FileOutputStream(rotatedPhoto);
+                try {
+                    rotatedBmp.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
+                } finally {
+                    fileOutputStream.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 }

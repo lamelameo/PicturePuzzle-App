@@ -3,6 +3,7 @@
     <string name="camera_gallery">Camera / Gallery</string>
     <string name="load_pic">Load Picture</string>
     <string name="load">Load</string>
+    <string name="save">Save Photo</string>
     <string name="timer">Timer</string>
     <string name="pause">Pause</string>
     <string name="resume">Resume</string>

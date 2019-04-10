@@ -62,23 +62,20 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         String photoPath = getIntent().getStringExtra("photoPath");
 
         // create puzzle piece bitmaps using the given image and add to bitmaps list
+        Bitmap bmp;
         if (photoPath == null) {  // no photo taken, so use the selected app photo, or appropriate default image
-            Bitmap bmp;
             String appPhotoPath = getIntent().getStringExtra("appPhotoPath");
-            // selected an app photo
-            if (appPhotoPath != null) {
+            if (appPhotoPath != null) {  // selected an app photo
                 bmp = scalePhoto(gridSize, appPhotoPath);
             } else {  // selected a default image, or no selection
                 int gridBitmap = getIntent().getIntExtra("drawableId", R.drawable.dfdfdefaultgrid);
                 bmp = BitmapFactory.decodeResource(getResources(), gridBitmap);
             }
-            int imageSize = bmp.getWidth();
-            createBitmapGrid(bmp, numCols, numCols, imageSize);
         } else {  // have taken a photo - so use it for the image
-            // scales the photo to the puzzle grid and creates the grid (ends up cropping off the bottom)
-            final Bitmap bmp2 = scalePhoto(gridSize, photoPath);
-            createBitmapGrid(bmp2, numCols, numCols, gridSize);
+            bmp = scalePhoto(gridSize, photoPath);
         }
+        int imageSize = bmp.getWidth();
+        createBitmapGrid(bmp, numCols, numCols, imageSize);
 
         // initialise grid settings
         puzzleGrid.setColumnCount(numCols);
@@ -569,7 +566,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
      * @return the scaled and rotated image as a Bitmap object
      */
     private Bitmap scalePhoto(int viewSize, String photopath) {
-        // scale image previews to fit the allocated View to save app memory
+        // scale puzzle bitmap to fit the game grid view to save app memory/ prevent errors
         BitmapFactory.Options bmOptions = new BitmapFactory.Options();
         bmOptions.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(photopath, bmOptions);
@@ -578,12 +575,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         int scaleFactor = Math.min(photoW/viewSize, photoH/viewSize);
         bmOptions.inJustDecodeBounds = false;
         bmOptions.inSampleSize = scaleFactor;
-
-        // rotate image to correct orientation - default is landscape
-        Matrix matrix = new Matrix();
-        matrix.postRotate(90);
-        Bitmap bitmap = BitmapFactory.decodeFile(photopath, bmOptions);
-        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+        return BitmapFactory.decodeFile(photopath, bmOptions);
     }
 
 
