@@ -15,6 +15,7 @@ import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 
@@ -40,6 +41,8 @@ public class PhotoCropping extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_photo_cropping);
         Log.i(TAG, "onCreate: ");
+
+        //TODO: dont have an app bar
 
         // Buttons
         ImageView photoCropView = findViewById(R.id.cropView);
@@ -72,8 +75,8 @@ public class PhotoCropping extends Activity {
                     gameIntent.putExtra("numColumns", mGridRows);
                     startActivity(gameIntent);
                 } else {
-                    Toast photoToast = new Toast(getApplicationContext());
-                    photoToast.setText("Take a photo or choose one from Gallery.");
+                    Toast photoToast = Toast.makeText(getApplicationContext(),
+                            "Take a photo with Camera or choose one from Gallery.", Toast.LENGTH_LONG);
                     photoToast.show();
                 }
             }

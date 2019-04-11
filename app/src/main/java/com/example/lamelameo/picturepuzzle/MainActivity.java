@@ -129,10 +129,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        //TODO: use to change overlay of photo previews... setForeground requires higher min SDK
-//        final int[] gridOverlays = {R.drawable.gridoverlay3, R.drawable.gridoverlay4,
-//                R.drawable.gridoverlay5, R.drawable.gridoverlay6};
-
         // set gridsize based on the checked radio button, this value will be used as an intent extra when starting the game
         final RadioGroup setGrid = findViewById(R.id.setGrid);
         setGrid.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
@@ -144,9 +140,6 @@ public class MainActivity extends AppCompatActivity {
                     if (radioButton.getId() == checkedId) {
                         mGridRows = x + 3;  // update grid size for use in load button listener in this context
                         testAdapter.setmGridRows(x + 3);  // send the value to recycler adapter for use in button listener there
-                        //TODO: set photo previews grid overlay based on checked radio button
-//                        Drawable gridOverlay = getResources().getDrawable(gridOverlays[x], null);
-//                        mCameraView.setForeground(gridOverlay);
                         break;
                     }
                 }

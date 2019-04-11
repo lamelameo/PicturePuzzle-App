@@ -19,14 +19,13 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
 
     private static final String TAG = "ImageRecyclerAdapter";
     private ArrayList<Drawable> mDrawablePhotos;
-    private Intent mIntent;
     private int[] mDrawableInts;
     private Context mContext;
     private int mGridRows;
     private static int mSelectedImage = -1;
     private static int mSelectedPhoto = -1;
     private static boolean isDefaultImages = true;
-    private ArrayList<ConstraintLayout> recyclerViews = new ArrayList<>();
+    private static ArrayList<myViewHolder> recyclerViews = new ArrayList<>();
 
     // constructor takes array of drawables resource integers (default images)
     ImageRecyclerAdapter(int[] drawableInts, Context context) {
@@ -76,23 +75,30 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
         }
     }
 
-    //TODO: MORE SELECTION BUGS....???
+    //TODO: MORE SELECTION BUGS...problem is switching adapters
+    // scroll through all defaults selecting each till last...switch to photos and do same, at some point the adapter will
+    // create a new viewholder and two selections will happen as the previous selection is not cleared.
+    // FIX: list of viewholders was not same for each clicked view, made the list static, so same list is present no matter
+    // what and both adapters should use same holders and fill up same list when new one is created...
 
     private View.OnClickListener recyclerViewListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Log.i(TAG, "mSelectedImage: "+mSelectedImage);
-            // clear all views to remove potential previous selection before checking for new selection
-            for (ConstraintLayout view: recyclerViews) {
-                //TODO: just uncolour selected holder?
-                view.setBackground(null);
+            // clear the previous selection graphic (if any) before checking for new selection
+            for (myViewHolder view: recyclerViews) {
+                int[] vhTag = (int[])view.mImageView.getTag();
+                // clear only the selected view for the active dataset (defaults or photos)
+                if ((isDefaultImages && vhTag[0] == mSelectedImage) || (!isDefaultImages && vhTag[1] == mSelectedPhoto)) {
+                    view.mPreviewLayout.setBackground(null);
+                }
             }
-
-            int viewImageIndex = (int)v.getTag();  // keeps track of the displayed image/photo
+            int[] viewTag = (int[])v.getTag();  // keeps track of the displayed image/photo
+            int viewImageIndex;
             ConstraintLayout parentView = (ConstraintLayout)v.getParent();  // the view to be coloured on selection
             // process clicks for only the displayed dataset, while keeping track of selections for both,
             // boolean isDefaultImages keeps track of displayed dataset, updated from main activity
             if (isDefaultImages) {  // process clicks for default images
+                viewImageIndex = viewTag[0];
                 if (mSelectedImage != viewImageIndex) {  // clicked a new selection
                     parentView.setBackgroundColor(Color.CYAN);
                     mSelectedImage = viewImageIndex;  // update selection tracker variable for next click
@@ -100,6 +106,7 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
                     mSelectedImage = -1;  // update tracker
                 }
             } else {  // process clicks for photos, same as for images but with separate variable
+                viewImageIndex = viewTag[1];
                 if (mSelectedPhoto != viewImageIndex) {
                     parentView.setBackgroundColor(Color.CYAN);
                     mSelectedPhoto = viewImageIndex;
@@ -119,25 +126,34 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
         ConstraintLayout layout = (ConstraintLayout) LayoutInflater.from(parent.getContext()).inflate(
                                    R.layout.image_preview, parent, false);
         final AppCompatImageView imageView = layout.findViewById(R.id.previewImage);
+        // set click listeners for the images only, and initialise tags to track the image present in each holder upon
+        // clicking the ImageView, in order to handle image selection (graphic and data)
         imageView.setOnClickListener(recyclerViewListener);
-        recyclerViews.add(layout);
+        if (imageView.getTag() == null) {
+            int[] tag = {-1,-1};
+            imageView.setTag(tag);
+        }
         // create view holder instances using the preview Views
         final myViewHolder vh = new myViewHolder(layout, imageView);
+        recyclerViews.add(vh);
         return vh;
     }
 
     // set image view to corresponding drawable in dataset
     @Override
     public void onBindViewHolder(@NonNull final myViewHolder holder, int position) {
+        Log.i(TAG, "onBindViewHolder: ");
+        // set graphic and tag corresponding to the set image for the current holder
+        int[] currentTag = (int[])holder.mImageView.getTag();
         // set the image for the item based on the position in adapter...as holders are recycled it will be set each bind
         if (mDrawablePhotos != null) {  // instance displaying app photos will have an object for mDrawablePhotos
-            Log.i(TAG, "onBindViewHolder: photos");
             holder.mImageView.setImageDrawable(mDrawablePhotos.get(position));  // set the correct image for that position
-            holder.mImageView.setTag(position);  // set a tag for tracking the current image set, as holders are recycled
+            currentTag[1] = position;
+            holder.mImageView.setTag(currentTag);  // set a tag for tracking the current image set, as holders are recycled
         } else {  // instance using default images, mDrawablePhoto will be null
-            Log.i(TAG, "onBindViewHolder: defaults");
             holder.mImageView.setImageResource(mDrawableInts[position]);
-            holder.mImageView.setTag(position);
+            currentTag[0] = position;
+            holder.mImageView.setTag(currentTag);
         }
 
         // check if the holder being bound is selected and give cyan background else set no background

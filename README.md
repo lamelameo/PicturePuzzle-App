@@ -5,3 +5,10 @@ Saves the lowest amount of moves and time taken to complete the puzzle. Can paus
 - Minimum SDK required: 17.
 - ImageAdapter.java and game_test.java are old files which are unused in the app.
 
+Sample images of the current app are displayed below.
+(Note: grid overlay does not correspond to choice in preview as of yet, but game activity produces correct sized grid.)
+
+Left: MainActivity, Middle: PhotoCropper, Right: PuzzleGridTest
+
+
+![alt_text](app/src/main/res/drawable/screenshots.png)
