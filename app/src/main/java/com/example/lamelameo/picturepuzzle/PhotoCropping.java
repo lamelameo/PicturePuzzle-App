@@ -14,6 +14,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -24,7 +25,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
-public class PhotoCropping extends Activity {
+public class PhotoCropping extends AppCompatActivity {
 
     private static final String TAG = "PhotoCropping";
     private ImageView mCameraView, cropView;
@@ -32,7 +33,7 @@ public class PhotoCropping extends Activity {
     private int mGridRows = 4;
     private static final int REQUEST_IMAGE_CAPTURE = 1;
     private static final int REQUEST_GALLERY_SELECT = 0;
-    private static final int CAMERA_CROP_RESULT = 2;
+    private static final int PHOTO_CROP_RESULT = 2;
     private float cropYBounds, cropXBounds, photoYBounds, photoXBounds;
 
 
@@ -121,7 +122,6 @@ public class PhotoCropping extends Activity {
                     RadioButton radioButton = (RadioButton)group.getChildAt(x);
                     if (radioButton.getId() == checkedId) {
                         mGridRows = x + 3;  // update grid size for use in load button listener in this context
-                        //TODO: set photo previews grid overlay based on checked radio button
 //                        Drawable gridOverlay = getResources().getDrawable(gridOverlays[x], null);
 //                        mCameraView.setForeground(gridOverlay);
                         break;
@@ -132,6 +132,7 @@ public class PhotoCropping extends Activity {
 
     }
 
+    //TODO: use for cropping function
     private void setArrowListener(final int direction, ImageView arrowView) {
         // up = 0, down = 1, left = 2, right = 3
         View.OnClickListener onClickListener = new View.OnClickListener() {
@@ -152,6 +153,7 @@ public class PhotoCropping extends Activity {
         arrowView.setOnClickListener(onClickListener);
     }
 
+    //TODO: for use in self made cropping function
     private View.OnClickListener arrowClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -220,39 +222,38 @@ public class PhotoCropping extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_IMAGE_CAPTURE) {  // result from camera intent
-            if (resultCode == RESULT_OK) {  // got a photo back from camera
-                // we already have the photo file path, which we will use to crop the photo and save in same file path
-                File croppedPhotoFile = new File(mCurrentPhotoPath);
-                // TODO: take camera file, save to gallery, get URI, send to cropper, save into new file in app?
-                // this is the URI to save the photo into after cropping - for camera photos it will overwrite
-//        Uri croppedPhotoURI = Uri.fromFile(croppedPhotoFile);
-                //TODO: cant send photo, which is saved in app, to gallery cropper as get permission problem even with provider
-                Uri croppedPhotoURI = FileProvider.getUriForFile(this, "com.example.android.fileprovider",
-                        croppedPhotoFile);
-                Log.i(TAG, "onActivityResult: photoURI "+croppedPhotoURI);
-                Intent editPhotoIntent = new Intent("com.android.camera.action.CROP");
-                editPhotoIntent.setDataAndType(croppedPhotoURI, "image/*");
-                editPhotoIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                editPhotoIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                dispatchCropIntent(editPhotoIntent, croppedPhotoURI);
-            } else {  // didnt get a return value (no photo)
-                // TODO: this is not needed anymore after changes?
-                // clear file at photopath or will get errors reopening app as there are empty files with no pic stored
-                try {
-                    boolean deleteTempFile = new File(mCurrentPhotoPath).delete();
-                    Log.i(TAG, "deleted temp photo file: "+deleteTempFile);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Log.i(TAG, "tried to delete temp file on no result camera exit, but got error");
-                }
-                // clear photopath or will get errors trying to access null image in game activity
-                mCurrentPhotoPath = null;
+        Log.i(TAG, "onActivityResult requestCode: " + requestCode);
+        Log.i(TAG, "onActivityResult resultCode: "+resultCode);
+        // for any cancelled result, must remove the created file and clear the photo path to avoid errors
+        if (resultCode == RESULT_CANCELED) {
+            try {
+                boolean deleteTempFile = new File(mCurrentPhotoPath).delete();
+                Log.i(TAG, "deleted temp photo file: "+deleteTempFile);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Log.i(TAG, "tried to delete photo file, but got error - probably no file");
             }
+            // clear photopath or will get errors trying to access null image in game activity
+            mCurrentPhotoPath = null;
+        }
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {  // got a photo from camera intent
+            // we already have the photo file path, which we will use to crop the photo and save in same file path
+            File croppedPhotoFile = new File(mCurrentPhotoPath);
+            // this is the URI to save the photo into after cropping - for camera photos it will overwrite
+            // must use provider as we are sending photo saved in app folder to cropper activity outside app
+            Uri croppedPhotoURI = FileProvider.getUriForFile(this, "com.example.android.fileprovider",
+                    croppedPhotoFile);
+            Log.i(TAG, "onActivityResult: photoURI "+croppedPhotoURI);
+            Intent editPhotoIntent = new Intent("com.android.camera.action.CROP");
+            editPhotoIntent.setDataAndType(croppedPhotoURI, "image/*");
+            // must flag both read and write permissions or will get security error
+            editPhotoIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            editPhotoIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            dispatchCropIntent(editPhotoIntent, croppedPhotoURI);
         } else {
-            Log.i(TAG, "onActivityResult requestCode: " + requestCode);
             // process gallery image selection
-            //TODO: using image URI from gallery sending to gallery cropper, then saving to app, no permission problems
+            //TODO: using image URI from gallery sending to gallery cropper, then saving to app using data given back by
+            // intent in getData(), no permission problems
             if (requestCode == REQUEST_GALLERY_SELECT && resultCode == RESULT_OK && data != null) {
                 // get the URI for the photo selected from gallery and send it to the android photo editor to crop
                 Uri selectedPhotoURI = data.getData();
@@ -272,7 +273,7 @@ public class PhotoCropping extends Activity {
                 }
             }
             // get the cropped photo and send ImageView in app for a preview
-            if (requestCode == CAMERA_CROP_RESULT && resultCode == RESULT_OK && data != null) {
+            if (requestCode == PHOTO_CROP_RESULT && resultCode == RESULT_OK && data != null) {
                 Uri croppedPhotoUri = data.getData();
                 try {
                     Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(croppedPhotoUri));
@@ -298,7 +299,7 @@ public class PhotoCropping extends Activity {
         intent.putExtra("output", saveUri);
         intent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString());
         intent.putExtra("noFaceDetection", true);
-        startActivityForResult(intent, CAMERA_CROP_RESULT);
+        startActivityForResult(intent, PHOTO_CROP_RESULT);
     }
 
     /**
@@ -306,6 +307,7 @@ public class PhotoCropping extends Activity {
      * @param direction has value of either 90 or 270, determines if the photo rotates right or left, respectively
      */
     private void rotatePhoto(float direction) {
+        Log.i(TAG, "rotatePhoto:mCurrentPhotoPath "+mCurrentPhotoPath);
         if (mCurrentPhotoPath != null) {
             // rotate image to correct orientation - default is landscape
             Matrix matrix = new Matrix();
