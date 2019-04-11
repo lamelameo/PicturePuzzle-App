@@ -8,7 +8,7 @@ Saves the lowest amount of moves and time taken to complete the puzzle. Can paus
 Sample images of the current app are displayed below.
 (Note: grid overlay does not correspond to choice in preview as of yet, but game activity produces correct sized grid.)
 
-Left: MainActivity, Middle: PhotoCropper, Right: PuzzleGridTest
+Left: MainActivity, Middle: PuzzleGridTest, Right: PhotoCropper
 
 
 ![alt_text](app/src/main/res/drawable/screenshots.png)
