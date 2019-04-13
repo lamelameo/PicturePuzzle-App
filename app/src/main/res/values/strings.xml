@@ -9,6 +9,7 @@
     <string name="resume">Resume</string>
     <string name="start">Start</string>
     <string name="retry">Retry</string>
+    <string name="hint">Show Original Image</string>
     <string name="new_game">New Puzzle</string>
     <string name="main_menu">Main Menu</string>
     <string name="resize">Resize</string>

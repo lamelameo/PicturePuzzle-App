@@ -222,6 +222,7 @@ public class PhotoCropping extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        //TODO: toast for each time photo is saved to app??
         Log.i(TAG, "onActivityResult requestCode: " + requestCode);
         Log.i(TAG, "onActivityResult resultCode: "+resultCode);
         // for any cancelled result, must remove the created file and clear the photo path to avoid errors

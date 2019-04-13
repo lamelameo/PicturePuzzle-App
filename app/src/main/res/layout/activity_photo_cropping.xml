@@ -10,13 +10,12 @@
         android:id="@+id/cropView"
         android:layout_width="300dp"
         android:layout_height="300dp"
-        android:layout_marginBottom="36dp"
+        android:layout_marginBottom="28dp"
         android:layout_marginEnd="8dp"
-        android:layout_marginStart="40dp"
+        android:layout_marginStart="8dp"
         android:foreground="@drawable/gridoverlay4"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@android:color/transparent" />
 
@@ -80,19 +79,23 @@
         android:layout_width="52dp"
         android:layout_height="45dp"
         android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
         android:layout_marginStart="12dp"
         android:layout_marginTop="16dp"
         android:src="@android:drawable/ic_menu_camera"
         app:layout_constraintBottom_toTopOf="@+id/startGame"
+        app:layout_constraintEnd_toStartOf="@+id/saveButton"
+        app:layout_constraintHorizontal_bias="0.742"
         app:layout_constraintStart_toEndOf="@+id/galleryButton"
-        app:layout_constraintTop_toBottomOf="@+id/radioGroup" />
+        app:layout_constraintTop_toBottomOf="@+id/radioGroup"
+        app:layout_constraintVertical_bias="0.526" />
 
     <Button
         android:id="@+id/galleryButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        android:layout_marginStart="48dp"
+        android:layout_marginStart="28dp"
         android:layout_marginTop="16dp"
         android:text="@string/gallery_images"
         app:layout_constraintBottom_toTopOf="@+id/rotateLeft"
@@ -104,7 +107,7 @@
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:layout_marginBottom="20dp"
-        android:layout_marginStart="64dp"
+        android:layout_marginStart="28dp"
         android:src="@drawable/rotateleft"
         app:layout_constraintBottom_toTopOf="@+id/cropView"
         app:layout_constraintStart_toStartOf="parent" />
@@ -114,19 +117,22 @@
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:layout_marginBottom="20dp"
-        android:layout_marginStart="40dp"
+        android:layout_marginEnd="28dp"
         android:src="@drawable/rotateright"
         app:layout_constraintBottom_toTopOf="@+id/cropView"
-        app:layout_constraintStart_toEndOf="@+id/startGame" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <Button
         android:id="@+id/startGame"
         android:layout_width="wrap_content"
         android:layout_height="48dp"
         android:layout_marginBottom="20dp"
-        android:layout_marginStart="32dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="48dp"
         android:text="@string/start"
         app:layout_constraintBottom_toTopOf="@+id/cropView"
+        app:layout_constraintEnd_toStartOf="@+id/rotateRight"
+        app:layout_constraintHorizontal_bias="0.166"
         app:layout_constraintStart_toEndOf="@+id/rotateLeft" />
 
     <Button
@@ -134,12 +140,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        android:layout_marginStart="20dp"
+        android:layout_marginEnd="28dp"
         android:layout_marginTop="16dp"
         android:text="@string/save"
         app:layout_constraintBottom_toTopOf="@+id/rotateRight"
-        app:layout_constraintStart_toEndOf="@+id/takePhoto"
-        app:layout_constraintTop_toBottomOf="@+id/radioGroup" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/radioGroup"
+        app:layout_constraintVertical_bias="0.714" />
 
 
 </android.support.constraint.ConstraintLayout>

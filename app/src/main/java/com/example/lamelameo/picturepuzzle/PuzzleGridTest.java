@@ -3,6 +3,7 @@ package com.example.lamelameo.picturepuzzle;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -38,6 +39,8 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     private PauseMenu pauseMenu;
     private int[] bestData;
     private boolean newBestData;
+    private boolean hintShowing = false;
+    private ImageView hintImage;
 
     /**
      * Retrieve data from main activity, and create the images for the grid cells using the given image and grid size.
@@ -177,6 +180,33 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                     toast.show();
                 }
 
+            }
+        });
+
+        // Hint button makes original selected image visible over top of the puzzle grid to show cells solved order
+        Button hintButton = findViewById(R.id.hintButton);
+        hintImage = findViewById(R.id.hintImage);
+        hintImage.setImageBitmap(bmp);
+        hintImage.setClickable(false);
+        hintImage.setVisibility(View.INVISIBLE);
+        // use handler to call a runnable to make the image invisible after 1 second (can change if needed)
+        final Handler hintHandler = new Handler();
+        final Runnable futureRunnable = new Runnable() {
+            @Override
+            public void run() {
+                hintImage.setVisibility(View.INVISIBLE);
+                hintShowing = false;
+                hintImage.setClickable(false);
+            }
+        };
+        hintButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!hintShowing) {  // show hint only if isnt already showing to remove redundant calls
+                    hintImage.setVisibility(View.VISIBLE);
+                    hintImage.setClickable(true);
+                    hintHandler.postDelayed(futureRunnable, 1000);  // set to remove image in 1 second
+                }
             }
         });
 
