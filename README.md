@@ -1,14 +1,12 @@
 # PicturePuzzle
-A simple sliding puzzle app for android, take a photo to load as your picture or choose from some default images. 
-Saves the lowest amount of moves and time taken to complete the puzzle. Can pause and resume the game, but can not save a game state.
+A simple sliding puzzle app for android. Take a photo or choose one from gallery to crop and load as your image, or 
+choose from some default images. A timer and move counter track stats, and the lowest amount of moves and time taken to 
+complete the puzzle is saved and displayed. Move individual cells with a tap or slide rows/columns, view the original
+image over the puzzle grid for reference, pause and resume the game at will.
 - Designed for and tested only on devices with dimensions: 720 x 1280 pixels, 16:9 ratio (or lager).
 - Minimum SDK required: 17.
 - ImageAdapter.java and game_test.java are old files which are unused in the app.
 
-Sample images of the current app are displayed below.
-(Note: grid overlay does not correspond to choice in preview as of yet, but game activity produces correct sized grid.)
+##### Sample images of MainActivity, PuzzleActivity, PhotoCropper:
 
-Left: MainActivity, Middle: PuzzleGridTest, Right: PhotoCropper
-
-
-![alt_text](app/src/main/res/drawable/screenshots.png)
+![alt_text](screenshots/app_screenshots_compiled.png)

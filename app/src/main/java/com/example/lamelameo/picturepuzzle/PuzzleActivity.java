@@ -3,11 +3,10 @@ package com.example.lamelameo.picturepuzzle;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.*;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayout;
@@ -19,27 +18,22 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFragmentInteractionListener {
+public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFragmentInteractionListener {
 
-    private static final String TAG = "PuzzleGridTest";
+    private static final String TAG = "PuzzleActivity";
     private ArrayList<Drawable> bitmaps = new ArrayList<>();
     private ArrayList<ArrayList<ImageView>> cellRows, cellCols;
     private ArrayList<ImageView> gridCells;
-    private int emptyCellIndex;
+    private int emptyCellIndex, numRows, timerCount, puzzleNum, numMoves;
     private VelocityTracker mVelocityTracker = null;
     private float xDown, yDown;
-    private int numRows;
-    private int timerCount;
-    private int puzzleNum;
-    private int numMoves;
     private ArrayList<String> savedDataList = new ArrayList<>();
     private TextView moveCounter;
-    private boolean gamePaused = false;
+    private boolean gamePaused = true, newBestData, hintShowing = false, wasGamePaused = true, gameSolved = false,
+            returnMain=false;
     private Runnable timerRunnable;
     private PauseMenu pauseMenu;
     private int[] bestData;
-    private boolean newBestData;
-    private boolean hintShowing = false;
     private ImageView hintImage;
 
     /**
@@ -52,9 +46,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_puzzle_grid_test);
-
-        // ~~~ set up the puzzle grid ~~~
+        setContentView(R.layout.activity_puzzle);
 
         // first get relevant chosen settings from main activity
         final GridLayout puzzleGrid = findViewById(R.id.gridLayout);
@@ -184,7 +176,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         });
 
         // Hint button makes original selected image visible over top of the puzzle grid to show cells solved order
-        Button hintButton = findViewById(R.id.hintButton);
+        TextView hintButton = findViewById(R.id.hintButton);
         hintImage = findViewById(R.id.hintImage);
         hintImage.setImageBitmap(bmp);
         hintImage.setClickable(false);
@@ -209,6 +201,89 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                 }
             }
         });
+
+        //TODO: handling auto rotate to not cause bugs or crashes, need to create a suitable xml too
+        //  could change fragment code to detect if rotate occurs in onPause, then dont open UI
+        if (savedInstanceState != null) {
+            // get saved data
+            timerCount = savedInstanceState.getInt("timer");
+            tickRemainder = savedInstanceState.getLong("tickRemainder");
+            numMoves = savedInstanceState.getInt("moves");
+            gamePaused = savedInstanceState.getBoolean("paused");
+            gameSolved = savedInstanceState.getBoolean("isSolved");
+            ArrayList<Integer> savedGrid = savedInstanceState.getIntegerArrayList("cellStates");
+            if (numMoves != 0) {
+                moveCounter.setText(String.valueOf(numMoves));
+            }
+            if (timerCount != 0) {
+                int seconds = timerCount % 60;
+                int minutes = timerCount / 60;
+                timer.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
+            }
+            // Game pauses no matter what, if was running then UI will be opened, if paused then 2nd UI opened
+            // in either case, we will remove a UI by calling pause fragment with gamePaused = true
+            LinearLayout pauseContainer = findViewById(R.id.pauseContainer);
+            Log.i(TAG, "onCreate:paused? "+ gamePaused);
+            //replace fragment no matter what or it will cause issues...
+            FragmentManager manager = getSupportFragmentManager();
+            FragmentTransaction fragTrans = manager.beginTransaction();
+            fragTrans.replace(R.id.pauseContainer, pauseMenu);
+
+            if (!gamePaused || timerCount == 0 || gameSolved) {  // game had no pause UI active when rotated
+                // pause UI fragment instance created each oncreate and therefore have to replace and remove
+                // old fragment to remove it -- CAN change to hide/ show fragment? OR USE OLD FRAGMENT
+                fragTrans.remove(pauseMenu);
+                if (timerCount != 0) {  // game was running
+                    startTimer();
+                }
+                if (gameSolved) {  // must inflate solved UI if solved, set appropriate text
+                    solvedPuzzleUI(bestData);
+                }
+            } else {  // app was in pause UI when rotated, must make it visible again
+                pauseContainer.setVisibility(View.VISIBLE);
+                pauseContainer.setClickable(true);
+            }
+            fragTrans.commit();
+
+            // setting images and tags for cells
+            int cellIndex = -1;
+            for (ImageView cell: gridCells) {
+                cellIndex += 1;
+                int cellState = savedGrid.get(cellIndex);
+                // update cell tag
+                int[] newTag = {cellIndex, cellState};
+                cell.setTag(newTag);
+                // update cell images
+                if (cellState != bitmaps.size() - 1) {
+                    cell.setImageDrawable(bitmaps.get(cellState));
+                } else {
+                    emptyCellIndex = cellIndex;
+                    cell.setImageDrawable(null);
+                }
+
+            }
+
+        }
+
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        // Save game data...puzzle state, time/remainder, move count, best data, DONT redo onCreate??
+        ArrayList<Integer> cellStates = new ArrayList<>();
+        for (ImageView cell: gridCells) {
+            int[] cellTag = (int[])cell.getTag();
+            cellStates.add(cellTag[1]);
+//            String cellKey = "cell" + String.valueOf(cellTag[0]);
+//            outState.putInt(cellKey, cellTag[1]);
+        }
+        outState.putIntegerArrayList("cellStates" ,cellStates);
+        outState.putInt("timer", timerCount);
+        outState.putLong("tickRemainder", tickRemainder);
+        outState.putInt("moves", numMoves);
+        outState.putBoolean("paused", wasGamePaused);
+        outState.putBoolean("isSolved", gameSolved);
 
     }
 
@@ -240,12 +315,15 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        if (gamePaused) {  // fragment is present - remove it, start timer if game started
+        Log.i(TAG, "onBackPressed: ");
+        //TODO: back pressed when solved and rotated crashes app - pause rotate twice, press resume, then solved ->
+        //  gives fragment + solved UI, then if rotate, fragment removed, then press back = BUG
+        if (gamePaused && !gameSolved && timerCount != 0) {  // pause fragment is open
             pauseFragment();
-            if (timerCount != 0) {
-                startTimer();
-            }
+            startTimer();
         } else {  // fragment is not open - go back to main activity
+            Log.i(TAG, "onBackPressed: no fragment->move to main ");
+            returnMain = true;
             finish();
         }
     }
@@ -258,12 +336,12 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
 
         LinearLayout pauseContainer = findViewById(R.id.pauseContainer);
         FragmentTransaction fragmentTrans = getSupportFragmentManager().beginTransaction();
-        if (gamePaused) {
+        if (gamePaused) {  // game was paused, unpause and remove UI fragment
             fragmentTrans.remove(pauseMenu);
             pauseContainer.setVisibility(View.INVISIBLE);
             pauseContainer.setClickable(false);
-        } else {
-            fragmentTrans.add(R.id.pauseContainer, pauseMenu);
+        } else {  // game was running, pause and open UI fragment
+            fragmentTrans.replace(R.id.pauseContainer, pauseMenu);
             pauseContainer.setVisibility(View.VISIBLE);
             pauseContainer.setClickable(true);
         }
@@ -327,10 +405,23 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     protected void onPause() {
         super.onPause();
         Log.i(TAG, "onPause: ");
-        // pause the game timer if it is currently running
-        if (!gamePaused && timerCount != 0) {
-            pauseTimer();
+        // if called after a back press, then device navigates back to main, dont want to open pause UI
+        if (returnMain) {
+            return;
         }
+        // pause the game timer if it is currently running, and open the pause UI
+        wasGamePaused = gamePaused;
+        if (!gamePaused) {
+            pauseTimer();
+            pauseFragment();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        //TODO: remove fragment for rotating screen as we do not want to pause game, then can get fragment when oncreate
+        // is called again
     }
 
     /**
@@ -341,10 +432,6 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
     protected void onResume() {
         super.onResume();
         Log.i(TAG, "onResume: ");
-        // automatically open pause fragment if the game was running when onPause was called
-        if (timerCount != 0 && !gamePaused) {
-            pauseFragment();
-        }
     }
 
     int getEmptyCellIndex() {
@@ -769,6 +856,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                    ArrayList<ImageView> group) {
         // start game timer on first move
         if (timerCount == 0) {
+            gamePaused = false;
             startTimer();
         }
         // get the empty cell and the adjacent cell in a given group (row/col) then get the tags and image to be swapped
@@ -798,6 +886,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
         if (gridSolved()) {
             pauseTimer();
             gamePaused = true;  // change this so onResume does not open pause fragment after a finished game
+            gameSolved = true;
             //TODO: animation or wait between UI popup?
             saveGameData(gameData);
             solvedPuzzleUI(gameData);
@@ -877,7 +966,7 @@ public class PuzzleGridTest extends AppCompatActivity implements PauseMenu.OnFra
                 return true;
             }
 
-            // TODO: code from stackoverflow, can change, just is simple method to register anything resembling a swipe
+            // TODO: alternative method to detect swipe is to use gesture detector
             final int DISTANCE_THRESHOLD = dpToPx(11);  // ~1/3 the cell size
             final int VELOCITY_THRESHOLD = 200;  // TODO: change value if unhappy with sensitivity
             int gridSize = (int)Math.sqrt(gridCells.size());

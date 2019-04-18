@@ -24,7 +24,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".game_test" />
-        <activity android:name=".PuzzleGridTest" />
+        <activity android:name=".PuzzleActivity" />
         <activity android:name=".PhotoCropping" >
             <!--<intent-filter>-->
                 <!--<action android:name="android.media.action.CROP" />-->

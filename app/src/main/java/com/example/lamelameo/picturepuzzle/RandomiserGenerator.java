@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Random;
 
 /**
- * Call a copy of the function {@link #randomiseGrid} from {@link PuzzleGridTest} a given amount of times and record
+ * Call a copy of the function {@link #randomiseGrid} from {@link PuzzleActivity} a given amount of times and record
  * the return values (a String representing a unique solvable grid for the app) in a plain text file saved in the
  * folder @GridRandomiserTesting/test data with a given file name
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -76,20 +76,6 @@ public class RandomiserGenerator {
 
         long elapsedTimeSecs = (System.currentTimeMillis() - startTime)/1000;
         System.out.println("File Written. Time taken(secs): " + elapsedTimeSecs);
-    }
-
-    public int countSheeps(Boolean[] arrayOfSheeps) {
-        int numSheep = 0;
-        for (int i = 0; i < arrayOfSheeps.length; i++) {
-            try {
-                if (arrayOfSheeps[i]) {
-                    numSheep += 1;
-                }
-            } catch(Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return numSheep;
     }
 
     // function which generates a random solvable n x n grid of integers 1 - (n x n - 1) in list form (l->r, t->b)

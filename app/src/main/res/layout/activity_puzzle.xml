@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".PuzzleGridTest">
+    tools:context=".PuzzleActivity">
 
     <android.support.v7.widget.GridLayout
         android:id="@+id/gridLayout"
@@ -15,11 +15,11 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:background="@android:color/darker_gray"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/hintButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.772">
+        app:layout_constraintTop_toBottomOf="@+id/bestTimeView"
+        app:layout_constraintVertical_bias="0.567">
 
     </android.support.v7.widget.GridLayout>
 
@@ -28,7 +28,7 @@
         android:layout_width="210dp"
         android:layout_height="50dp"
         android:layout_marginEnd="28dp"
-        android:layout_marginTop="60dp"
+        android:layout_marginTop="16dp"
         android:background="@android:color/darker_gray"
         android:text="@string/timer_default"
         android:textAlignment="center"
@@ -41,8 +41,7 @@
     <TextView
         android:id="@+id/bestTimeView"
         android:layout_width="210dp"
-        android:layout_height="70dp"
-        android:layout_marginBottom="8dp"
+        android:layout_height="50dp"
         android:layout_marginEnd="28dp"
         android:layout_marginTop="8dp"
         android:background="@android:color/darker_gray"
@@ -50,41 +49,35 @@
         android:text="@string/highscore"
         android:textColor="@color/colorPrimary"
         android:textSize="20sp"
-        app:layout_constraintBottom_toTopOf="@+id/gridLayout"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/gameTimer"
-        app:layout_constraintVertical_bias="0.7" />
+        app:layout_constraintTop_toBottomOf="@+id/gameTimer" />
 
     <ImageButton
         android:id="@+id/pauseButton"
         android:layout_width="65dp"
         android:layout_height="65dp"
-        android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
         android:contentDescription="@string/pause"
-        app:layout_constraintBottom_toTopOf="@+id/gridLayout"
         app:layout_constraintEnd_toStartOf="@+id/bestTimeView"
         app:layout_constraintHorizontal_bias="0.536"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/moveCounter"
-        app:layout_constraintVertical_bias="0.761"
         app:srcCompat="@android:drawable/ic_media_pause" />
 
     <TextView
         android:id="@+id/moveCounter"
-        android:layout_width="65dp"
+        android:layout_width="55dp"
         android:layout_height="50dp"
         android:layout_marginEnd="12dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="60dp"
+        android:layout_marginTop="16dp"
         android:background="@android:color/darker_gray"
         android:gravity="center"
         android:textColor="@color/colorPrimary"
         android:textSize="24sp"
         app:layout_constraintEnd_toStartOf="@+id/gameTimer"
-        app:layout_constraintHorizontal_bias="0.594"
+        app:layout_constraintHorizontal_bias="0.56"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -92,30 +85,30 @@
         android:id="@+id/hintImage"
         android:layout_width="300dp"
         android:layout_height="300dp"
-        android:layout_marginBottom="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.772"
+        app:layout_constraintBottom_toBottomOf="@+id/gridLayout"
+        app:layout_constraintEnd_toEndOf="@+id/gridLayout"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/gridLayout"
+        app:layout_constraintTop_toTopOf="@+id/gridLayout"
+        app:layout_constraintVertical_bias="0.0"
         app:srcCompat="@android:color/transparent" />
 
-    <Button
+    <TextView
         android:id="@+id/hintButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_width="200dp"
+        android:layout_height="45dp"
+        android:layout_marginBottom="16dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
+        android:background="@android:color/darker_gray"
+        android:gravity="center"
         android:text="@string/hint"
+        android:textColor="@android:color/background_dark"
+        android:textSize="18sp"
+        android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/gridLayout" />
+        app:layout_constraintStart_toStartOf="parent" />
 
     <LinearLayout
         android:id="@+id/pauseContainer"

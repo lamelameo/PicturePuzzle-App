@@ -6,7 +6,6 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
-import android.widget.ImageView;
 
 public class PuzzleCellView extends AppCompatImageView {
 
@@ -15,7 +14,7 @@ public class PuzzleCellView extends AppCompatImageView {
     private int cellPostion;
     private int cellImageTag;
     private float xDown, yDown;
-    private PuzzleGridTest mContext;
+    private PuzzleActivity mContext;
     private int numRows;
     private int DISTANCE_THRESHOLD;
     private int VELOCITY_THRESHOLD;
@@ -23,8 +22,8 @@ public class PuzzleCellView extends AppCompatImageView {
     public PuzzleCellView(Context context) {
         super(context);
         // initialise attributes
-        if (context instanceof PuzzleGridTest) {
-            mContext = (PuzzleGridTest)context;
+        if (context instanceof PuzzleActivity) {
+            mContext = (PuzzleActivity)context;
             numRows = mContext.getNumRows();
             DISTANCE_THRESHOLD = mContext.dpToPx(11);  // ~1/3 the cell size
             VELOCITY_THRESHOLD = 200;

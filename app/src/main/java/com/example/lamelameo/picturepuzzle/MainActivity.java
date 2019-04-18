@@ -146,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        final Intent gameIntent = new Intent(this, PuzzleGridTest.class);
+        final Intent gameIntent = new Intent(this, PuzzleActivity.class);
         mGridRows = 4; // default amount of grid rows is 4
         final int[] defaultPuzzles = {R.drawable.grid9, R.drawable.grid15, R.drawable.grid25, R.drawable.grid36};
 
