@@ -1,6 +1,7 @@
 package com.example.lamelameo.picturepuzzle;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.*;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -85,8 +86,14 @@ public class MainActivity extends AppCompatActivity {
         mRecyclerView = findViewById(R.id.pictureRecyclerView);
         // improves performance given that recycler does not change size based on its contents (the images)
         mRecyclerView.setHasFixedSize(true);
-        // use layout manager -  horizontal orientation = 1, vertical = 0
-        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this, 1, false);
+        int orientation = getResources().getConfiguration().orientation;
+        // use layout manager -  horizontal orientation = 0, vertical = 1
+        RecyclerView.LayoutManager layoutManager;
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+             layoutManager = new LinearLayoutManager(this, 0, false);
+        } else {
+            layoutManager = new LinearLayoutManager(this, 1, false);
+        }
         mRecyclerView.setLayoutManager(layoutManager);
         // set adapter to default use default image dataset
         final ImageRecyclerAdapter testAdapter = new ImageRecyclerAdapter(drawableInts,this);

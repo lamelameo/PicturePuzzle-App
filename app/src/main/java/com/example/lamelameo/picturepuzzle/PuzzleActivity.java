@@ -1,6 +1,7 @@
 package com.example.lamelameo.picturepuzzle;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
@@ -202,16 +203,19 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
             }
         });
 
+        //TODO: can move to top of oncreate so no new objects are created?
+
         //TODO: handling auto rotate to not cause bugs or crashes, need to create a suitable xml too
         //  could change fragment code to detect if rotate occurs in onPause, then dont open UI
         if (savedInstanceState != null) {
-            // get saved data
+            // get saved data from saved instance
             timerCount = savedInstanceState.getInt("timer");
             tickRemainder = savedInstanceState.getLong("tickRemainder");
             numMoves = savedInstanceState.getInt("moves");
             gamePaused = savedInstanceState.getBoolean("paused");
             gameSolved = savedInstanceState.getBoolean("isSolved");
             ArrayList<Integer> savedGrid = savedInstanceState.getIntegerArrayList("cellStates");
+            // Update move counter and timer if the game was started before rotation
             if (numMoves != 0) {
                 moveCounter.setText(String.valueOf(numMoves));
             }
@@ -220,20 +224,18 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
                 int minutes = timerCount / 60;
                 timer.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
             }
-            // Game pauses no matter what, if was running then UI will be opened, if paused then 2nd UI opened
-            // in either case, we will remove a UI by calling pause fragment with gamePaused = true
+            // onPause called before onDestroy, so fragment will be present, must handle this depending if paused or not
             LinearLayout pauseContainer = findViewById(R.id.pauseContainer);
             Log.i(TAG, "onCreate:paused? "+ gamePaused);
-            //replace fragment no matter what or it will cause issues...
+            // replace pause UI fragment with newly created instance or it will cause issues...
             FragmentManager manager = getSupportFragmentManager();
             FragmentTransaction fragTrans = manager.beginTransaction();
             fragTrans.replace(R.id.pauseContainer, pauseMenu);
-
+            // If pause UI was active, keep new instance and make it visible, else remove it and hide container
+            // -- CAN change to hide/ show fragment? OR USE OLD FRAGMENT??
             if (!gamePaused || timerCount == 0 || gameSolved) {  // game had no pause UI active when rotated
-                // pause UI fragment instance created each oncreate and therefore have to replace and remove
-                // old fragment to remove it -- CAN change to hide/ show fragment? OR USE OLD FRAGMENT
                 fragTrans.remove(pauseMenu);
-                if (timerCount != 0) {  // game was running
+                if (timerCount != 0 && !gameSolved) {  // game was running must resume timer
                     startTimer();
                 }
                 if (gameSolved) {  // must inflate solved UI if solved, set appropriate text
@@ -244,7 +246,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
                 pauseContainer.setClickable(true);
             }
             fragTrans.commit();
-
             // setting images and tags for cells
             int cellIndex = -1;
             for (ImageView cell: gridCells) {
