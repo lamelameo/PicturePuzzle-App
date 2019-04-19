@@ -204,9 +204,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         });
 
         //TODO: can move to top of oncreate so no new objects are created?
-
-        //TODO: handling auto rotate to not cause bugs or crashes, need to create a suitable xml too
-        //  could change fragment code to detect if rotate occurs in onPause, then dont open UI
+        //TODO: could change fragment code to detect if rotate occurs in onPause, then dont open UI
         if (savedInstanceState != null) {
             // get saved data from saved instance
             timerCount = savedInstanceState.getInt("timer");
@@ -317,7 +315,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     public void onBackPressed() {
         super.onBackPressed();
         Log.i(TAG, "onBackPressed: ");
-        //TODO: back pressed when solved and rotated crashes app - pause rotate twice, press resume, then solved ->
+        // BUG: back pressed when solved and rotated crashes app - pause rotate twice, press resume, then solved ->
         //  gives fragment + solved UI, then if rotate, fragment removed, then press back = BUG
         if (gamePaused && !gameSolved && timerCount != 0) {  // pause fragment is open
             pauseFragment();
@@ -384,7 +382,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         long elapsedSincePrevTick = pauseTime - prevTickTime;
         tickRemainder = 1000 - elapsedSincePrevTick;
 
-        //TODO: alternate method:
         //convert to string to take only last 3 integer values (take sub second values)
 //        long elapsedTime = pauseTime - startTime;
 //        String remainderStr = String.valueOf(elapsedTime);
@@ -421,8 +418,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        //TODO: remove fragment for rotating screen as we do not want to pause game, then can get fragment when oncreate
-        // is called again
     }
 
     /**
@@ -834,7 +829,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         if (newBestData) {
             Toast newBestToast = Toast.makeText(getApplicationContext(), "New Best \uD83D\uDC4D", Toast.LENGTH_LONG);
 //            int toastPosition = (int)pauseContainer.getY();
-            newBestToast.setGravity(Gravity.TOP, 0, 150);  // TODO: want it just above UI?
+            newBestToast.setGravity(Gravity.TOP, 0, 150);
             newBestToast.show();
         }
 
@@ -969,7 +964,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
 
             // TODO: alternative method to detect swipe is to use gesture detector
             final int DISTANCE_THRESHOLD = dpToPx(11);  // ~1/3 the cell size
-            final int VELOCITY_THRESHOLD = 200;  // TODO: change value if unhappy with sensitivity
+            final int VELOCITY_THRESHOLD = 200;  // change value if unhappy with sensitivity
             int gridSize = (int)Math.sqrt(gridCells.size());
 
             float xVelocity, xCancel, xDiff, yVelocity, yCancel, yDiff;

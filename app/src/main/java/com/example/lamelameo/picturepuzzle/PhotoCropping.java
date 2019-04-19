@@ -23,8 +23,8 @@ import java.util.Locale;
 public class PhotoCropping extends AppCompatActivity {
 
     private static final String TAG = "PhotoCropping";
-    private ImageView mCameraView, cropView;
-    private String mCurrentPhotoPath;
+    private ImageView cropView;
+    private String mCurrentPhotoPath = null;
     private int mGridRows = 4;
     private static final int REQUEST_IMAGE_CAPTURE = 1;
     private static final int REQUEST_GALLERY_SELECT = 0;
@@ -38,12 +38,14 @@ public class PhotoCropping extends AppCompatActivity {
         setContentView(R.layout.activity_photo_cropping);
         Log.i(TAG, "onCreate: ");
 
-        //TODO: dont have an app bar
+        if (savedInstanceState != null) {
+            mCurrentPhotoPath = (String)savedInstanceState.getCharSequence("photoPath");
+        }
 
         // Buttons
-        ImageView photoCropView = findViewById(R.id.cropView);
-//        ImageView photoView = findViewById(R.id.photoView);
-        mCameraView = photoCropView;
+        cropView = findViewById(R.id.cropView);
+        Bitmap savedPhoto = BitmapFactory.decodeFile(mCurrentPhotoPath);
+        cropView.setImageBitmap(savedPhoto);
         ImageView rotateRight = findViewById(R.id.rotateRight);
         ImageView rotateLeft = findViewById(R.id.rotateLeft);
         rotateRight.setOnClickListener(new View.OnClickListener() {
@@ -59,6 +61,7 @@ public class PhotoCropping extends AppCompatActivity {
             }
         });
 
+        // start game button onclicklistener
         Button startGame = findViewById(R.id.startGame);
         final Intent gameIntent = new Intent(this, PuzzleActivity.class);
         startGame.setOnClickListener(new View.OnClickListener() {
@@ -80,11 +83,6 @@ public class PhotoCropping extends AppCompatActivity {
 
         ImageView cameraButton = findViewById(R.id.takePhoto);
         Button galleryButton = findViewById(R.id.galleryButton);
-        cropView = photoCropView;
-//        Log.i(TAG, "onCreate photoY: "+photoView.getY());
-//        Log.i(TAG, "onCreate photoH: "+photoView.getHeight());
-//        photoXBounds = photoView.getX() + photoView.getWidth();
-//        photoYBounds = photoView.getY() + photoView.getHeight();
 
         // send intent to take photo using camera on button click
         cameraButton.setOnClickListener(new View.OnClickListener() {
@@ -118,7 +116,7 @@ public class PhotoCropping extends AppCompatActivity {
                     if (radioButton.getId() == checkedId) {
                         mGridRows = x + 3;  // update grid size for use in load button listener in this context
 //                        Drawable gridOverlay = getResources().getDrawable(gridOverlays[x], null);
-//                        mCameraView.setForeground(gridOverlay);
+//                        cropView.setForeground(gridOverlay);
                         break;
                     }
                 }
@@ -127,25 +125,10 @@ public class PhotoCropping extends AppCompatActivity {
 
     }
 
-    //TODO: use for cropping function
-    private void setArrowListener(final int direction, ImageView arrowView) {
-        // up = 0, down = 1, left = 2, right = 3
-        View.OnClickListener onClickListener = new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                switch (direction) {
-                    case 0:  // up
-
-                    case 1:  // down
-
-                    case 2:  // left
-
-                    case 3:  // right
-
-                }
-            }
-        };
-        arrowView.setOnClickListener(onClickListener);
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putCharSequence("photoPath", mCurrentPhotoPath);
     }
 
     //TODO: for use in self made cropping function
@@ -157,7 +140,7 @@ public class PhotoCropping extends AppCompatActivity {
             // have to determine bounds or crop view can move outside of its constraints
             float yCoord = cropView.getY();
             Log.i(TAG, "onClick cropY: "+yCoord);
-            Log.i(TAG, "onClick photoY: "+mCameraView.getY());
+            Log.i(TAG, "onClick photoY: "+ cropView.getY());
             float height = cropView.getHeight();
             cropYBounds = yCoord + height;
             //TODO: why is photo view y values giving 0
@@ -209,7 +192,7 @@ public class PhotoCropping extends AppCompatActivity {
     }
 
     /**
-     * Gets the image taken with the camera intent as a Bitmap to display in an ImageView {@link #mCameraView} as a preview
+     * Gets the image taken with the camera intent as a Bitmap to display in an ImageView {@link #cropView} as a preview
      * @param requestCode request code is 1 for our camera intent
      * @param resultCode RESULT_OK means we got a photo, RESULT_CANCELLED means no photo
      * @param data returns result data from the camera Intent we used, can use getExtras to obtain this
@@ -273,7 +256,7 @@ public class PhotoCropping extends AppCompatActivity {
                 Uri croppedPhotoUri = data.getData();
                 try {
                     Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(croppedPhotoUri));
-                    mCameraView.setImageBitmap(bitmap);
+                    cropView.setImageBitmap(bitmap);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -311,7 +294,7 @@ public class PhotoCropping extends AppCompatActivity {
             Bitmap bitmap = BitmapFactory.decodeFile(mCurrentPhotoPath);
             Bitmap rotatedBmp = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
             // update preview and over write the old photo
-            mCameraView.setImageBitmap(rotatedBmp);
+            cropView.setImageBitmap(rotatedBmp);
             File rotatedPhoto = new File(mCurrentPhotoPath);
             try {
                 FileOutputStream fileOutputStream = new FileOutputStream(rotatedPhoto);
