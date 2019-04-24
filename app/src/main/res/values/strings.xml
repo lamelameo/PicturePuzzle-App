@@ -1,34 +1,45 @@
 <resources>
+    <!-- Generic Strings -->
     <string name="app_name">PicturePuzzle</string>
+    <string name="start">Start</string>
+    <string name="resume">Resume</string>
+    <string name="new_game">New Puzzle</string>
+    <string name="grid_size">GridSize:</string>
+    <string name="set3">3</string>
+    <string name="set4">4</string>
+    <string name="set5">5</string>
+    <string name="set6">6</string>
+    <!-- Toast Messages -->
+    <string name="game_paused">Game Paused</string>
+
+    <!-- Main Activity -->
+    <string name="title_activity_main">MainActivity</string>
+    <string name="main_menu">Main Menu</string>
+    <string name="default_images">Default</string>
+    <string name="gallery_images">Gallery</string>
     <string name="camera_gallery">Camera / Gallery</string>
     <string name="load_pic">Load Picture</string>
     <string name="load">Load</string>
     <string name="save">Save Photo</string>
     <string name="timer">Timer</string>
     <string name="pause">Pause</string>
-    <string name="resume">Resume</string>
-    <string name="start">Start</string>
-    <string name="retry">Retry</string>
+
+    <!-- Puzzle Activity -->
+    <string name="title_activity_puzzle">PuzzleActivity</string>
+    <string name="timer_default">00:00</string>
     <string name="hint">Show Original Image</string>
-    <string name="new_game">New Puzzle</string>
-    <string name="main_menu">Main Menu</string>
+    <!-- Paused UI -->
     <string name="resize">Resize</string>
-    <string name="grid_size">GridSize:</string>
-    <string name="game_paused">Game Paused</string>
-    <string name="default_images">Default</string>
-    <string name="gallery_images">Gallery</string>
-    <string name="test">Move image to fit within square puzzle grid or use arrows.
-                        Use buttons to zoom in or out.</string>
-    <string name="move_arrows">move arrow</string>
-    <string name="zoom_buttons">zoom</string>
+    <!-- Solved UI -->
     <string name="puzzle_solved">Puzzle Solved ☜</string>
     <string name="highscore">Best Time: \nBest Moves: </string>
-    <string name="timer_default">00:00</string>
-    <string name="set3">3</string>
-    <string name="set4">4</string>
-    <string name="set5">5</string>
-    <string name="set6">6</string>
-    <string name="title_activity_photo">PhotoActivity</string>
+    <string name="retry">Retry</string>
+
+    <!-- Photo Cropper -->
     <string name="title_activity_photo_cropping">PhotoCropping</string>
+    <string name="zoom_buttons">zoom</string>
+    <string name="move_arrows">move arrow</string>
+    <string name="test">Move image to fit within square puzzle grid or use arrows.
+                        Use buttons to zoom in or out.</string>
 
 </resources>

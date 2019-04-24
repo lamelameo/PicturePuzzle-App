@@ -286,8 +286,14 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
 
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        return super.onCreateOptionsMenu(menu);
+        //TODO: customise menu bar
+    }
+
     /**
-     * Called if user clicks New Puzzle button in pause UI. Finish activity to move back to the main activity,
+     * Called if user clicks New Puzzle button in pause UI. Finish activity to move back to the previous activity,
      * to let the user choose a new puzzle.
      */
     @Override
@@ -314,14 +320,12 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        Log.i(TAG, "onBackPressed: ");
         // BUG: back pressed when solved and rotated crashes app - pause rotate twice, press resume, then solved ->
         //  gives fragment + solved UI, then if rotate, fragment removed, then press back = BUG
         if (gamePaused && !gameSolved && timerCount != 0) {  // pause fragment is open
             pauseFragment();
             startTimer();
         } else {  // fragment is not open - go back to main activity
-            Log.i(TAG, "onBackPressed: no fragment->move to main ");
             returnMain = true;
             finish();
         }

@@ -153,6 +153,7 @@ def analyse_dataset(dataset_file, grid_size):
     for grid in unique_grids:
         chi_squared += ((unique_grids[grid] - expected_frequency)**2)/expected_frequency
     print("\nchi squared: " + str(chi_squared))
+    # Is very large number...extends to infintity as dataset is larger
 
 
 # analyse_dataset("randomiser datasets/gridsize(9)_numgrids(10000000).txt", 8)
@@ -169,7 +170,7 @@ def analyse_dataset(dataset_file, grid_size):
 
 
 def use_list():
-    # TODO: Tested using list, but is very slow as I thought (hence why originally used dict) as we must search through
+    # TODO: Tested using list, but is extremely slow as I thought (hence why originally used dict) as we must search through
     # the array (worst case whole array) for every line in the dataset, which increases as we find unique grids
     unique_grids_array = []
     counter = 0

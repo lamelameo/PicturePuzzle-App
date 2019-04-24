@@ -1,5 +1,6 @@
 package com.example.lamelameo.picturepuzzle;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -17,6 +18,7 @@ import android.widget.*;
 
 import java.io.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
@@ -25,10 +27,11 @@ public class PhotoCropping extends AppCompatActivity {
     private static final String TAG = "PhotoCropping";
     private ImageView cropView;
     private String mCurrentPhotoPath = null;
+    private ArrayList<String> savedPhotos = new ArrayList<>();
     private int mGridRows = 4;
     private static final int REQUEST_IMAGE_CAPTURE = 1;
     private static final int REQUEST_GALLERY_SELECT = 0;
-    private static final int PHOTO_CROP_RESULT = 2;
+    private static final int REQUEST_PHOTO_CROP = 2;
     private float cropYBounds, cropXBounds, photoYBounds, photoXBounds;
 
 
@@ -36,10 +39,10 @@ public class PhotoCropping extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_photo_cropping);
-        Log.i(TAG, "onCreate: ");
 
         if (savedInstanceState != null) {
             mCurrentPhotoPath = (String)savedInstanceState.getCharSequence("photoPath");
+            savedPhotos = savedInstanceState.getStringArrayList("savedPhotos");
         }
 
         // Buttons
@@ -68,7 +71,8 @@ public class PhotoCropping extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (mCurrentPhotoPath != null) {
-                    //TODO: save photo only on game start as this means user wants photo?
+                    //TODO: 1.save photo only on game start as this means user wants photo?
+                    //  2.SEND newly saved photos to puzzle in case add function to move from Puzzle to Main directly
                     gameIntent.putExtra("photoPath", mCurrentPhotoPath);
                     gameIntent.putExtra("puzzleNum", -1);
                     gameIntent.putExtra("numColumns", mGridRows);
@@ -110,7 +114,6 @@ public class PhotoCropping extends AppCompatActivity {
         setGrid.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
-                Log.i(TAG, "onCheckedChanged: "+checkedId);
                 for (int x = 0; x<4; x++) {
                     RadioButton radioButton = (RadioButton)group.getChildAt(x);
                     if (radioButton.getId() == checkedId) {
@@ -129,6 +132,21 @@ public class PhotoCropping extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putCharSequence("photoPath", mCurrentPhotoPath);
+        outState.putStringArrayList("savedPhotos", savedPhotos);
+    }
+
+    @Override
+    public void onBackPressed() {
+//        super.onBackPressed();
+        // send list of paths of newly saved photos to main activity so the recycler can be updated.
+        Intent intent = new Intent();
+        intent.putStringArrayListExtra("savedPhotos", savedPhotos);
+        if (savedPhotos.size() != 0) {
+            setResult(RESULT_OK, intent);
+        } else {
+            setResult(RESULT_CANCELED);
+        }
+        finish();
     }
 
     //TODO: for use in self made cropping function
@@ -152,6 +170,19 @@ public class PhotoCropping extends AppCompatActivity {
             }
         }
     };
+
+
+    /**
+     * Create and show a Toast to display an exception message encountered by the app
+     * @param exception the Exception the app has produced
+     */
+    private void createErrorToast(Exception exception) {
+        // gives the exceptions name and message (if any)
+        String errorMessage = exception.toString();
+        String exceptionName = exception.getClass().toString();
+        Toast errorToast = Toast.makeText(getApplicationContext(), errorMessage, Toast.LENGTH_SHORT);
+        errorToast.show();
+    }
 
     /**
      * Creates and invokes an Intent to take a photo using the camera
@@ -179,7 +210,7 @@ public class PhotoCropping extends AppCompatActivity {
     /**
      * Save the full sized image taken from camera to an app private directory that is deleted if app is removed
      * @return a File to store a photo taken with the camera intent
-     * @throws IOException error when making File
+     * throws IOException error when making File
      */
     private File createImageFile() throws IOException {
 //        Locale locale = ConfigurationCompat.getLocales(Resources.getSystem().getConfiguration());
@@ -200,20 +231,24 @@ public class PhotoCropping extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        //TODO: toast for each time photo is saved to app??
-        Log.i(TAG, "onActivityResult requestCode: " + requestCode);
-        Log.i(TAG, "onActivityResult resultCode: "+resultCode);
-        // for any cancelled result, must remove the created file and clear the photo path to avoid errors
+        // TODO: toast for each time photo is saved to app??
+        // for cancelled results, must remove created file if empty and clear the photo path to avoid errors
         if (resultCode == RESULT_CANCELED) {
             try {
-                boolean deleteTempFile = new File(mCurrentPhotoPath).delete();
-                Log.i(TAG, "deleted temp photo file: "+deleteTempFile);
+                File photoFile = new File(mCurrentPhotoPath);
+                if (photoFile.length() == 0) {
+                    boolean emptyFileDeleted = photoFile.delete();
+                }
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.i(TAG, "tried to delete photo file, but got error - probably no file");
             }
-            // clear photopath or will get errors trying to access null image in game activity
-            mCurrentPhotoPath = null;
+            // If a previously loaded photo is still present in the preview, retrieve its path and set mCurrentPhotoPath
+            // else, clear mCurrentPhotoPath or will get errors trying to access null image in game activity
+            if (cropView.getTag() != null) {
+                mCurrentPhotoPath = (String)cropView.getTag();
+            } else {
+                mCurrentPhotoPath = null;
+            }
         }
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {  // got a photo from camera intent
             // we already have the photo file path, which we will use to crop the photo and save in same file path
@@ -222,17 +257,10 @@ public class PhotoCropping extends AppCompatActivity {
             // must use provider as we are sending photo saved in app folder to cropper activity outside app
             Uri croppedPhotoURI = FileProvider.getUriForFile(this, "com.example.android.fileprovider",
                     croppedPhotoFile);
-            Log.i(TAG, "onActivityResult: photoURI "+croppedPhotoURI);
-            Intent editPhotoIntent = new Intent("com.android.camera.action.CROP");
-            editPhotoIntent.setDataAndType(croppedPhotoURI, "image/*");
-            // must flag both read and write permissions or will get security error
-            editPhotoIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            editPhotoIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            dispatchCropIntent(editPhotoIntent, croppedPhotoURI);
+            dispatchCropIntent(croppedPhotoURI, croppedPhotoURI);
         } else {
-            // process gallery image selection
-            //TODO: using image URI from gallery sending to gallery cropper, then saving to app using data given back by
-            // intent in getData(), no permission problems
+            // process gallery image selection using image URI from gallery sending to gallery cropper, then saving
+            // to app using data given back by intent in getData(), no permission problems
             if (requestCode == REQUEST_GALLERY_SELECT && resultCode == RESULT_OK && data != null) {
                 // get the URI for the photo selected from gallery and send it to the android photo editor to crop
                 Uri selectedPhotoURI = data.getData();
@@ -246,17 +274,26 @@ public class PhotoCropping extends AppCompatActivity {
                 // if successful in creating File, save a copy of the photo into it to then be edited
                 if (croppedPhotoFile != null) {
                     Uri croppedPhotoURI = Uri.fromFile(croppedPhotoFile);
-                    Intent editPhotoIntent = new Intent("com.android.camera.action.CROP");
-                    editPhotoIntent.setDataAndType(selectedPhotoURI, "image/*");
-                    dispatchCropIntent(editPhotoIntent, croppedPhotoURI);
+                    dispatchCropIntent(selectedPhotoURI, croppedPhotoURI);
                 }
             }
             // get the cropped photo and send ImageView in app for a preview
-            if (requestCode == PHOTO_CROP_RESULT && resultCode == RESULT_OK && data != null) {
+            if (requestCode == REQUEST_PHOTO_CROP && resultCode == RESULT_OK && data != null) {
+                // update num saved photos to send to main activity for updating the recycler view
+//                savedPhotos.add(mCurrentPhotoPath);
+                String photoPath = mCurrentPhotoPath;
+                savedPhotos.add(photoPath);
+                // output URI is saved in the intent data, see link below
+                // https://android.googlesource.com/platform/packages/apps/Gallery2/+/c9f743a/src/com/android/gallery3d/app/CropImage.java
                 Uri croppedPhotoUri = data.getData();
+                //TODO: is it appropriate to use photopath to save paths - if we add to arraylist then value changes ???
+                // BUG: by selecting gallery photo then cancel a new selection (clears photopath) took photo then start
+                // game pressing back twice, got a blank image in recycler + the new photos, if select blank choice
+                // and start, app crashes - note: gallery selected photo is deleted in directory while photo is present
                 try {
                     Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(croppedPhotoUri));
                     cropView.setImageBitmap(bitmap);
+                    cropView.setTag(mCurrentPhotoPath);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -265,20 +302,31 @@ public class PhotoCropping extends AppCompatActivity {
 
     }
 
-    private void dispatchCropIntent(Intent intent, Uri saveUri) {
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, saveUri);  // output file uri
-        // output smaller photo
-        //TODO: could be too large if user has poor quality camera or it will just scale it and look blurry?
-        intent.putExtra("outputX", 1000);
-        intent.putExtra("outputY", 1000);
-        // set aspect ratio to 1:1 for a square image
-        intent.putExtra("aspectX", 1);
-        intent.putExtra("aspectY", 1);
-        intent.putExtra("scale", true);
-        intent.putExtra("output", saveUri);
-        intent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString());
-        intent.putExtra("noFaceDetection", true);
-        startActivityForResult(intent, PHOTO_CROP_RESULT);
+    private void dispatchCropIntent(Uri data, Uri saveUri) {
+        //TODO: need a backup if device cant run this crop intent
+        try {  // catch exception for devices without this crop activity
+            Intent intent = new Intent("com.android.camera.action.CROP");
+            intent.setDataAndType(data, "image/*");
+            // must flag both read and write permissions or will get security error
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, saveUri);  // output file uri
+            // output smaller photo
+            //TODO: could be too large if user has poor quality camera or it will just scale it and look blurry?
+            intent.putExtra("outputX", 1000);
+            intent.putExtra("outputY", 1000);
+            // set aspect ratio to 1:1 for a square image
+            intent.putExtra("aspectX", 1);
+            intent.putExtra("aspectY", 1);
+//        intent.putExtra("return-data", true);
+            intent.putExtra("scale", true);
+            intent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString());
+            intent.putExtra("noFaceDetection", true);
+            startActivityForResult(intent, REQUEST_PHOTO_CROP);
+        } catch (ActivityNotFoundException e) {
+            e.printStackTrace();
+            createErrorToast(e);
+        }
     }
 
     /**
@@ -286,7 +334,6 @@ public class PhotoCropping extends AppCompatActivity {
      * @param direction has value of either 90 or 270, determines if the photo rotates right or left, respectively
      */
     private void rotatePhoto(float direction) {
-        Log.i(TAG, "rotatePhoto:mCurrentPhotoPath "+mCurrentPhotoPath);
         if (mCurrentPhotoPath != null) {
             // rotate image to correct orientation - default is landscape
             Matrix matrix = new Matrix();
