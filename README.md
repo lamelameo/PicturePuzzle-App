@@ -7,6 +7,6 @@ image over the puzzle grid for reference, pause and resume the game at will.
 - Minimum SDK required: 17.
 - ImageAdapter.java and game_test.java are old files which are unused in the app.
 
-##### Sample images of MainActivity, PuzzleActivity, PhotoCropper:
+##### Screenshots: (Above) MainActivity, PhotoCropper, (Below) PuzzleActivity
 
-![alt_text](screenshots/app_screenshots_compiled.png)
+![alt_text](screenshots/screenshots_combined.png)

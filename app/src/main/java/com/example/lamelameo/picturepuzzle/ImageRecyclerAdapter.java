@@ -32,7 +32,6 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
         mDrawableInts = drawableInts;
         mContext = context;
         mGridRows = 4;
-        Log.i(TAG, "created default adapter");
     }
 
     // constructor takes arraylist of drawables (photos)
@@ -40,7 +39,6 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
         mDrawablePhotos = images;
         mContext = context;
         mGridRows = 4;
-        Log.i(TAG, "created photo adapter");
     }
 
     void setmGridRows(int mGridRows) {
@@ -58,7 +56,6 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
 
     void setIsDefaultImages() {
         isDefaultImages = !isDefaultImages;
-        Log.i(TAG, "setIsDefaultImages: "+isDefaultImages);
     }
 
     void resetSelection() {
@@ -121,7 +118,6 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
     @NonNull
     @Override
     public myViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int i) {
-        Log.i(TAG, "onCreateViewHolder: ");
         // inflate the image previews in the recycler
         ConstraintLayout layout = (ConstraintLayout) LayoutInflater.from(parent.getContext()).inflate(
                                    R.layout.image_preview, parent, false);
@@ -142,7 +138,6 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
     // set image view to corresponding drawable in dataset
     @Override
     public void onBindViewHolder(@NonNull final myViewHolder holder, int position) {
-        Log.i(TAG, "onBindViewHolder: ");
         // set graphic and tag corresponding to the set image for the current holder
         int[] currentTag = (int[])holder.mImageView.getTag();
         // set the image for the item based on the position in adapter...as holders are recycled it will be set each bind

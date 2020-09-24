@@ -27,6 +27,7 @@ public class PhotoCropping extends AppCompatActivity {
     private static final String TAG = "PhotoCropping";
     private ImageView cropView;
     private String mCurrentPhotoPath = null;
+    private Uri mImage = null;
     private ArrayList<String> savedPhotos = new ArrayList<>();
     private int mGridRows = 4;
     private static final int REQUEST_IMAGE_CAPTURE = 1;
@@ -87,7 +88,6 @@ public class PhotoCropping extends AppCompatActivity {
 
         ImageView cameraButton = findViewById(R.id.takePhoto);
         Button galleryButton = findViewById(R.id.galleryButton);
-
         // send intent to take photo using camera on button click
         cameraButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -95,13 +95,11 @@ public class PhotoCropping extends AppCompatActivity {
                 dispatchTakePictureIntent();
             }
         });
-
         // open gallery picker on gallery button click
         galleryButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                startActivityForResult(galleryIntent, REQUEST_GALLERY_SELECT);
+                dispatchGallerySelectIntent();
             }
         });
 
@@ -207,6 +205,11 @@ public class PhotoCropping extends AppCompatActivity {
         }
     }
 
+    private void dispatchGallerySelectIntent() {
+        Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(galleryIntent, REQUEST_GALLERY_SELECT);
+    }
+
     /**
      * Save the full sized image taken from camera to an app private directory that is deleted if app is removed
      * @return a File to store a photo taken with the camera intent
@@ -224,7 +227,7 @@ public class PhotoCropping extends AppCompatActivity {
 
     /**
      * Gets the image taken with the camera intent as a Bitmap to display in an ImageView {@link #cropView} as a preview
-     * @param requestCode request code is 1 for our camera intent
+     * @param requestCode 0: Gallery select 1: Camera, 2: Crop image
      * @param resultCode RESULT_OK means we got a photo, RESULT_CANCELLED means no photo
      * @param data returns result data from the camera Intent we used, can use getExtras to obtain this
      */
@@ -234,6 +237,8 @@ public class PhotoCropping extends AppCompatActivity {
         // TODO: toast for each time photo is saved to app??
         // for cancelled results, must remove created file if empty and clear the photo path to avoid errors
         if (resultCode == RESULT_CANCELED) {
+            Log.i(TAG, "cancelled");
+            retrievePhoto();
             try {
                 File photoFile = new File(mCurrentPhotoPath);
                 if (photoFile.length() == 0) {
@@ -249,38 +254,32 @@ public class PhotoCropping extends AppCompatActivity {
             } else {
                 mCurrentPhotoPath = null;
             }
-        }
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {  // got a photo from camera intent
-            // we already have the photo file path, which we will use to crop the photo and save in same file path
-            File croppedPhotoFile = new File(mCurrentPhotoPath);
-            // this is the URI to save the photo into after cropping - for camera photos it will overwrite
-            // must use provider as we are sending photo saved in app folder to cropper activity outside app
-            Uri croppedPhotoURI = FileProvider.getUriForFile(this, "com.example.android.fileprovider",
-                    croppedPhotoFile);
-            dispatchCropIntent(croppedPhotoURI, croppedPhotoURI);
-        } else {
+        } else {  // process RESULT_OK for different request codes
+            if (requestCode == REQUEST_IMAGE_CAPTURE && data != null) {  // got a photo from camera intent
+                mImage = data.getData();
+                dispatchCropIntent(mImage, mImage);
+                return;
+            }
             // process gallery image selection using image URI from gallery sending to gallery cropper, then saving
             // to app using data given back by intent in getData(), no permission problems
-            if (requestCode == REQUEST_GALLERY_SELECT && resultCode == RESULT_OK && data != null) {
+            if (requestCode == REQUEST_GALLERY_SELECT && data != null) {
                 // get the URI for the photo selected from gallery and send it to the android photo editor to crop
-                Uri selectedPhotoURI = data.getData();
-                // Create a File in the app pictures directory to save the edited photo into
-                File croppedPhotoFile = null;
+                mImage = data.getData();
+                File photoFile = null;
                 try {
-                    croppedPhotoFile = createImageFile();
+                    photoFile = createImageFile();
                 } catch (IOException ex) {  // error when making file
                     ex.printStackTrace();
                 }
-                // if successful in creating File, save a copy of the photo into it to then be edited
-                if (croppedPhotoFile != null) {
-                    Uri croppedPhotoURI = Uri.fromFile(croppedPhotoFile);
-                    dispatchCropIntent(selectedPhotoURI, croppedPhotoURI);
+                // if successful in creating File, save the photo into it
+                if (photoFile != null) {
+                    Uri photoURI = FileProvider.getUriForFile(this, "com.example.android.fileprovider", photoFile);
+                    dispatchCropIntent(mImage, photoURI);
                 }
             }
             // get the cropped photo and send ImageView in app for a preview
-            if (requestCode == REQUEST_PHOTO_CROP && resultCode == RESULT_OK && data != null) {
+            if (requestCode == REQUEST_PHOTO_CROP && data != null) {
                 // update num saved photos to send to main activity for updating the recycler view
-//                savedPhotos.add(mCurrentPhotoPath);
                 String photoPath = mCurrentPhotoPath;
                 savedPhotos.add(photoPath);
                 // output URI is saved in the intent data, see link below
@@ -294,7 +293,7 @@ public class PhotoCropping extends AppCompatActivity {
                     Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(croppedPhotoUri));
                     cropView.setImageBitmap(bitmap);
                     cropView.setTag(mCurrentPhotoPath);
-                } catch (FileNotFoundException e) {
+                } catch (FileNotFoundException | NullPointerException e) {
                     e.printStackTrace();
                 }
             }
@@ -302,15 +301,16 @@ public class PhotoCropping extends AppCompatActivity {
 
     }
 
-    private void dispatchCropIntent(Uri data, Uri saveUri) {
+    private void dispatchCropIntent(Uri input, Uri output) {
         //TODO: need a backup if device cant run this crop intent
-        try {  // catch exception for devices without this crop activity
-            Intent intent = new Intent("com.android.camera.action.CROP");
-            intent.setDataAndType(data, "image/*");
+        Intent intent = new Intent("com.android.camera.action.CROP");
+//        if (intent.resolveActivity(getPackageManager()) != null) {
+        try {
+            intent.setDataAndType(input, "image/*");
             // must flag both read and write permissions or will get security error
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, saveUri);  // output file uri
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, output);  // output file uri
             // output smaller photo
             //TODO: could be too large if user has poor quality camera or it will just scale it and look blurry?
             intent.putExtra("outputX", 1000);
@@ -324,8 +324,10 @@ public class PhotoCropping extends AppCompatActivity {
             intent.putExtra("noFaceDetection", true);
             startActivityForResult(intent, REQUEST_PHOTO_CROP);
         } catch (ActivityNotFoundException e) {
+//        } else {
+            Toast cropToast = Toast.makeText(getApplicationContext(), "Device unable to run crop intent", Toast.LENGTH_LONG);
+            cropToast.show();
             e.printStackTrace();
-            createErrorToast(e);
         }
     }
 
@@ -340,7 +342,7 @@ public class PhotoCropping extends AppCompatActivity {
             matrix.postRotate(direction);
             Bitmap bitmap = BitmapFactory.decodeFile(mCurrentPhotoPath);
             Bitmap rotatedBmp = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-            // update preview and over write the old photo
+            // update preview and overwrite the old photo
             cropView.setImageBitmap(rotatedBmp);
             File rotatedPhoto = new File(mCurrentPhotoPath);
             try {
@@ -356,4 +358,54 @@ public class PhotoCropping extends AppCompatActivity {
         }
     }
 
+    /**
+     * Retrieve camera or gallery image data from mImage after a failed crop intent and auto crop to size then save.
+     */
+    private void retrievePhoto() {
+        if (mImage == null || mCurrentPhotoPath == null) {
+            return;
+        }
+        Log.i(TAG, "retrieve");
+//        File scaledPhoto = new File(mCurrentPhotoPath);
+        InputStream inputStream = null;
+        try {
+            inputStream = getContentResolver().openInputStream(mImage);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        // take image data and process and save it to app image directory
+        Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+        try {
+            FileOutputStream fileOutputStream = new FileOutputStream(mCurrentPhotoPath);
+            try {
+                // crop, rotate, scale image to fit square View
+                int bmpSize = bitmap.getHeight();
+                Matrix matrix = new Matrix();
+                matrix.postRotate(90);
+                float scaled = 1000f/bmpSize;
+                matrix.postScale(scaled, scaled);
+                Bitmap cropped = Bitmap.createBitmap(bitmap, 0, 0, bmpSize, bmpSize, matrix, true);
+                cropped.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
+                cropView.setImageBitmap(cropped);
+            } finally {
+                fileOutputStream.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        savedPhotos.add(mCurrentPhotoPath);
+        cropView.setTag(mCurrentPhotoPath);
+    }
+
+    //TODO: implement this ?
+    private void addPicGallery() {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        File f = new File(mCurrentPhotoPath);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        this.sendBroadcast(mediaScanIntent);
+        // directory for gallery images
+//        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+        //TODO: this method doesnt work??
+    }
 }

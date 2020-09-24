@@ -80,9 +80,9 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         int gridWidth = puzzleGrid.getLayoutParams().width;  //TODO: could change this based on screen?
 
         // initialise lists to hold grid objects
-        gridCells = new ArrayList<>();
-        cellRows = new ArrayList<>();
-        cellCols =  new ArrayList<>();
+        gridCells = new ArrayList<>(numCols*numCols);
+        cellRows = new ArrayList<>(numRows);
+        cellCols =  new ArrayList<>(numCols);
         for (int x=0; x<numCols; x++) {
             cellRows.add(new ArrayList<ImageView>());
             cellCols.add(new ArrayList<ImageView>());
@@ -248,7 +248,10 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
             int cellIndex = -1;
             for (ImageView cell: gridCells) {
                 cellIndex += 1;
-                int cellState = savedGrid.get(cellIndex);
+                int cellState = 0;
+                if (savedGrid != null) {
+                    cellState = savedGrid.get(cellIndex);
+                }
                 // update cell tag
                 int[] newTag = {cellIndex, cellState};
                 cell.setTag(newTag);
@@ -270,14 +273,12 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         // Save game data...puzzle state, time/remainder, move count, best data, DONT redo onCreate??
-        ArrayList<Integer> cellStates = new ArrayList<>();
+        ArrayList<Integer> cellStates = new ArrayList<>(numRows*numRows);
         for (ImageView cell: gridCells) {
             int[] cellTag = (int[])cell.getTag();
             cellStates.add(cellTag[1]);
-//            String cellKey = "cell" + String.valueOf(cellTag[0]);
-//            outState.putInt(cellKey, cellTag[1]);
         }
-        outState.putIntegerArrayList("cellStates" ,cellStates);
+        outState.putIntegerArrayList("cellStates", cellStates);
         outState.putInt("timer", timerCount);
         outState.putLong("tickRemainder", tickRemainder);
         outState.putInt("moves", numMoves);
@@ -485,8 +486,8 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
                     int timeStartIndex = line.indexOf(":") + 2;
                     int timeEndIndex = line.indexOf(",");  // indexOf will give -1 if not found ie no data for the puzzle
                     if (timeEndIndex != -1) {  // if there is saved data then get it
-                        savedData[0] = Integer.valueOf(line.substring(timeStartIndex, timeEndIndex));
-                        savedData[1] = Integer.valueOf(line.substring(timeEndIndex+1));
+                        savedData[0] = Integer.parseInt(line.substring(timeStartIndex, timeEndIndex));
+                        savedData[1] = Integer.parseInt(line.substring(timeEndIndex+1));
                     }
                 }
                 currentLine += 1;
@@ -562,13 +563,13 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
             String timeString = savedData.substring(timeStartIndex, timeEndIndex);
             String moveString = savedData.substring(timeEndIndex+1);
             // time and moves are lower than saved values, so update
-            if (gameData[0] < Integer.valueOf(timeString) && gameData[1] < Integer.valueOf(moveString)) {
+            if (gameData[0] < Integer.parseInt(timeString) && gameData[1] < Integer.parseInt(moveString)) {
                 newData = puzzleIdentifier + gameTime + "," + gameMoves;
             }  // update time only
-            if (gameData[0] < Integer.valueOf(timeString) && gameData[1] > Integer.valueOf(moveString)) {
+            if (gameData[0] < Integer.parseInt(timeString) && gameData[1] > Integer.parseInt(moveString)) {
                 newData = puzzleIdentifier + gameTime + "," + moveString;
             }  // update moves only
-            if (gameData[0] > Integer.valueOf(timeString) && gameData[1] < Integer.valueOf(moveString)) {
+            if (gameData[0] > Integer.parseInt(timeString) && gameData[1] < Integer.parseInt(moveString)) {
                 newData = puzzleIdentifier + timeString + "," + gameMoves;
             }
         }
@@ -612,9 +613,10 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     private ArrayList<Integer> randomiseGrid(int numCols) {
         // initialise objects and set variables
         Random random = new Random();
-        ArrayList<Integer> randomisedGrid = new ArrayList<>();
-        ArrayList<Integer> posPool = new ArrayList<>();
         int gridSize = numCols*numCols;
+        ArrayList<Integer> randomisedGrid = new ArrayList<>(gridSize);
+        ArrayList<Integer> posPool = new ArrayList<>(gridSize-1);
+
         // list of ascending values from 0 - size of grid used for tracking values tested for inversions
 //        ArrayList<Integer> unTestedValues = new ArrayList<>();
 
@@ -791,11 +793,14 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         retryButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //TODO: randomise grid or reset to starting state?
-                //  if reset puzzle without creating new activity instance, then must reset all data and variables
-                //  eg. class vars: gamePaused, gameData, etc. also local vars in onCreate OR save the randomised grid
-                //  and call oncreate
-                recreate();
+                // randomise grid or reset to starting state?
+                // if reset puzzle without creating new activity instance, then must reset all data and variables
+                // eg. class vars: gamePaused, gameData, etc. also local vars in onCreate OR save the randomised grid
+                // and call oncreate
+                startActivity(getIntent());
+                finish();
+                //TODO: doesnt work...saves data first before calling new instance,
+//                recreate();
 
             }
         });
