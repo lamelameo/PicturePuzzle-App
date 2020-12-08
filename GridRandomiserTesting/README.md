@@ -1,5 +1,5 @@
-# Testing the function (PuzzleGridTest.randomiseGrid) used to generate randomised grids (Mostly out of curiosity)
-### *TL;DR: My simple function maintains the randomness? of the java Random class methods*
+# Testing the function (PuzzleGridTest.randomiseGrid) used to generate randomised grids.
+### *TL;DR: The function generates sufficiently random grid states for my liking.*
 
 For 3x3 and 4x4 grid sizes, the function creates adequately random combinations. Tested by generating large amounts of 
 grids (Using RandomiserGenerator.java) and simply analysing the data. For a 4x4 grid size, 1 test was done by generating 

@@ -24,12 +24,7 @@
         </activity>
 <!--        <activity android:name=".game_test" />-->
         <activity android:name=".PuzzleActivity" />
-        <activity android:name=".PhotoCropping" >
-            <!--<intent-filter>-->
-                <!--<action android:name="android.media.action.CROP" />-->
-                <!--<category android:name="android.intent.category.DEFAULT" />-->
-            <!--</intent-filter>-->
-        </activity>
+        <activity android:name=".PhotoCropping" />
 
         <provider
             android:name="android.support.v4.content.FileProvider"
