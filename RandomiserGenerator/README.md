@@ -11,7 +11,7 @@ of that grid in the dataset. Pandas/matplotlib were used to analyse the data and
 Below are the statistics for the 4x4 grid size, of the 15! (last cell is fixed) combinations possible , only half are 
 solvable. All but one of the million grids generated was unique, therefore any user is very unlikely to ever get a duplicate. 
 
-![alt_text](images/4x4%201mil%20unique%20grids.png)
+![alt_text](GridRandomiserTesting/images/4x4 1mil unique grids.png)
 
 Below are the statistics and plots/histograms from the data obtained using one hundred -> ten million generated grids. 
 Duplicate grids will be generated if called enough times, with 0 after 100 function calls but 26 after 1,000 calls, 
@@ -20,11 +20,11 @@ have been generated, and the frequency of each unique grid is approximately equa
 possible combinations). The frequency values are spread in a (Poisson) normal distribution for large call values with 
 the mean value being that stated above (and std. dev. = sqrt(mean)), meaning each grid is equally likely to be generated.
 
-![alt_text](images/3x3%20stats%20combined.png)
+![alt_text](GridRandomiserTesting/images/3x3 stats combined.png)
 
-![alt_text](images/3x3%20scatter%20combined.png)
+![alt_text](GridRandomiserTesting/images/3x3 scatter combined.png)
 
-![alt_text](images/3x3%20hist%20combined.png)
+![alt_text](GridRandomiserTesting/images/3x3 hist combined.png)
 
 There are extra sorted scatter plots in this folder, as well as images of stats related to extra testing where specific 
 grids frequencies were tracked through different datasets.

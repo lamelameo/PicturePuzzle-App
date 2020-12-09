@@ -1,5 +1,6 @@
 package com.example.lamelameo.picturepuzzle;
 
+import android.util.Log;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -12,14 +13,12 @@ import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -199,7 +198,6 @@ public class PhotoCropping extends AppCompatActivity {
      */
     private void createErrorToast(Exception exception) {
         // gives the exceptions name and message (if any)
-//        String exceptionName = exception.getClass().toString();
         String errorMessage = exception.toString();
         Toast errorToast = Toast.makeText(getApplicationContext(), errorMessage, Toast.LENGTH_SHORT);
         errorToast.show();
@@ -213,7 +211,7 @@ public class PhotoCropping extends AppCompatActivity {
         if (cameraIntent.resolveActivity(getPackageManager()) != null) {
             File photoFile = null;
             try {
-                photoFile = createImageFile(getExternalFilesDir(Environment.DIRECTORY_PICTURES));
+                photoFile = createImageFile();
             } catch (IOException e) {
                 createErrorToast(e);
             }
@@ -238,10 +236,10 @@ public class PhotoCropping extends AppCompatActivity {
      * @return a File to store a photo taken with the camera intent
      * throws IOException error when making File
      */
-    private File createImageFile(File dir) throws IOException {
+    private File createImageFile() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
         String imageFileName = timeStamp + "_";
-        File image = File.createTempFile(imageFileName, ".jpg", dir);
+        File image = File.createTempFile(imageFileName, ".jpg", getExternalFilesDir(Environment.DIRECTORY_PICTURES));
         mCurrentPhotoPath = image.getAbsolutePath();
         return image;
     }
@@ -285,8 +283,6 @@ public class PhotoCropping extends AppCompatActivity {
                 mUri = data.getData();
                 try {
                     Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(mUri));
-//                    Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), mUri);
-//                    mImage = bitmap;
                     cropView.setImageBitmap(bitmap);
                     mImage = bitmap;
                 } catch (Exception e) {
@@ -303,7 +299,7 @@ public class PhotoCropping extends AppCompatActivity {
         if (output == null) {
             File file = null;
             try {
-                file = createImageFile(getExternalFilesDir(Environment.DIRECTORY_PICTURES));
+                file = createImageFile();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -356,9 +352,7 @@ public class PhotoCropping extends AppCompatActivity {
         Bitmap bitmap = null;
         Bitmap scaled = null;
         try {
-            try (InputStream inputStream = getContentResolver().openInputStream(mUri)) {
-                bitmap = BitmapFactory.decodeStream(inputStream);
-            }
+            bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(mUri));
         } catch (NullPointerException | IOException e) {
             e.printStackTrace();
         }
@@ -384,7 +378,7 @@ public class PhotoCropping extends AppCompatActivity {
         File photoFile = null;
         if (mCurrentPhotoPath == null) {
             try {
-                photoFile = createImageFile(getExternalFilesDir(Environment.DIRECTORY_PICTURES));
+                photoFile = createImageFile();
             } catch (IOException ex) {  // error when making file
                 ex.printStackTrace();
             }
@@ -394,10 +388,8 @@ public class PhotoCropping extends AppCompatActivity {
 
         // if successful in creating File, save the photo into it
         if (photoFile != null) {
-            try {
-                try (FileOutputStream fileOutputStream = new FileOutputStream(photoFile)) {
-                    image.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
-                }
+            try (FileOutputStream fileOutputStream = new FileOutputStream(photoFile)) {
+                image.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
             } catch (IOException e) {
                 e.printStackTrace();
             }

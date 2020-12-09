@@ -2,16 +2,16 @@ package com.example.lamelameo.picturepuzzle;
 
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.graphics.*;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.View;
 import android.widget.*;
 
@@ -23,15 +23,16 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private RecyclerView mRecyclerView;
-    private ArrayList<Drawable> savedPhotos = new ArrayList<>();
-    private ArrayList<String> photoPaths = new ArrayList<>();
+    private final ArrayList<Drawable> savedPhotos = new ArrayList<>();
+    private final ArrayList<String> photoPaths = new ArrayList<>();
     private int mGridRows;
     private boolean defaultAdapter;
-    private static int REQUEST_PHOTO_CROPPING = 1;
+    private final static int REQUEST_PHOTO_CROPPING = 1;
 
     /**
      * Scale an image to the size of a view, and rotate 90 degrees to obtain the image in portrait orientation
-     * @param viewSize the size of the view for the image to be scaled to
+     *
+     * @param viewSize  the size of the view for the image to be scaled to
      * @param photopath the file path of the image to be scaled
      * @return a Drawable of the given image scaled to a size suitable to fit into the target view
      */
@@ -42,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         BitmapFactory.decodeFile(photopath, bmOptions);
         int photoW = bmOptions.outWidth;
         int photoH = bmOptions.outHeight;
-        int scaleFactor = Math.min(photoW/viewSize, photoH/viewSize);
+        int scaleFactor = Math.min(photoW / viewSize, photoH / viewSize);
         bmOptions.inJustDecodeBounds = false;
         bmOptions.inSampleSize = scaleFactor;
         Bitmap bitmap = BitmapFactory.decodeFile(photopath, bmOptions);
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Setup Buttons and their onClickListeners that allow the user to choose settings, take a photo, and start a puzzle.
      * Also setup the recycler view which displays image choices for the puzzle.
+     *
      * @param savedInstanceState get previously saved activity instance
      */
     @Override
@@ -73,18 +75,18 @@ public class MainActivity extends AppCompatActivity {
         // use layout manager -  horizontal orientation = 0, vertical = 1
         RecyclerView.LayoutManager layoutManager;
         if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-             layoutManager = new LinearLayoutManager(this, 0, false);
+            layoutManager = new LinearLayoutManager(this, 0, false);
         } else {
             layoutManager = new LinearLayoutManager(this, 1, false);
         }
         mRecyclerView.setLayoutManager(layoutManager);
         // set adapter to default use default image dataset
-        final ImageRecyclerAdapter testAdapter = new ImageRecyclerAdapter(drawableInts,this);
+        final ImageRecyclerAdapter testAdapter = new ImageRecyclerAdapter(drawableInts);
         mRecyclerView.setAdapter(testAdapter);
         defaultAdapter = true;
         // toggle recycler view between default images and photos taken and saved using this app
         ToggleButton adapterButton = findViewById(R.id.adapterButton);
-        final ImageRecyclerAdapter photoAdapter = new ImageRecyclerAdapter(savedPhotos, this);
+        final ImageRecyclerAdapter photoAdapter = new ImageRecyclerAdapter(savedPhotos);
         //TODO: could use a grid layout manager to allow for a grid in recycler view rather than list (or a choice)
 
         // set button listener to change between datasets (defaults or photos) for the recycler view
@@ -94,13 +96,10 @@ public class MainActivity extends AppCompatActivity {
                 defaultAdapter = !defaultAdapter;  // update boolean to track which dataset is displayed
                 if (isChecked) {  // recycler displaying default images -> change to app photo gallery
                     mRecyclerView.swapAdapter(photoAdapter, true);
-//                    testAdapter.resetSelection();
-                    // inform adapter of dataset change to defaults
                     photoAdapter.notifyDataSetChanged();
                     photoAdapter.setIsDefaultImages();  // update boolean which tells adapter which dataset is shown
                 } else {  // recycler displaying app gallery -> defaults
                     mRecyclerView.swapAdapter(testAdapter, true);
-//                    testAdapter.resetSelection();
                     testAdapter.notifyDataSetChanged();
                     testAdapter.setIsDefaultImages();
                 }
@@ -122,11 +121,10 @@ public class MainActivity extends AppCompatActivity {
         setGrid.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
-                for (int x = 0; x<4; x++) {
-                    RadioButton radioButton = (RadioButton)group.getChildAt(x);
+                for (int x = 0; x < 4; x++) {
+                    RadioButton radioButton = (RadioButton) group.getChildAt(x);
                     if (radioButton.getId() == checkedId) {
                         mGridRows = x + 3;  // update grid size for use in load button listener in this context
-                        testAdapter.setmGridRows(x + 3);  // send the value to recycler adapter for use in button listener there
                         break;
                     }
                 }
@@ -145,10 +143,9 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 gameIntent.putExtra("numColumns", mGridRows);  // set extra for grid size
                 // remove any previous extra so the game activity does not use it instead of the intended image/photo
-                gameIntent.removeExtra("photoPath");  // app taken photo
-                gameIntent.removeExtra("appPhotoPath"); // saved photos
-                gameIntent.removeExtra("drawableId");  // default images
-                 // get drawable id or photo path for selected image from recycler view adapter
+                gameIntent.removeExtra("photoPath");
+                gameIntent.removeExtra("drawableId");
+                // get drawable id or photo path for selected image from recycler view adapter
                 int selectedImage = testAdapter.getSelection();
                 // if no selection, check for selected grid size to send the appropriate default image
                 if (selectedImage == -1) {
@@ -160,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
                         gameIntent.putExtra("puzzleNum", selectedImage);
                     } else {  // selection is from app photos
                         //TODO: send photo path, with no puzzlenum extra as savefile does not support it
-                        gameIntent.putExtra("appPhotoPath", photoPaths.get(selectedImage));
+                        gameIntent.putExtra("photoPath", photoPaths.get(selectedImage));
                         gameIntent.putExtra("puzzleNum", -1);
                     }
                 }
@@ -175,8 +172,8 @@ public class MainActivity extends AppCompatActivity {
      * drawables (image) and strings (filepath) which can be used to display the photos and send to the Puzzle Activity
      */
     private void getSavedPhotos() {
-        File imageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File[] storedImages = imageDir.listFiles();  //TODO: why warning - even when no files no exception
+        // TODO: should limit amount of storable photos, or have on the fly loading of images as list could be huge
+        File[] storedImages = getExternalFilesDir(Environment.DIRECTORY_PICTURES).listFiles();
         if (storedImages == null) {
             return;
         }
@@ -201,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 String imagePath = file.getAbsolutePath();
                 photoPaths.add(imagePath);
-                Drawable imageBitmap = scalePhoto((int)recyclerViewPx, imagePath);
+                Drawable imageBitmap = scalePhoto((int) recyclerViewPx, imagePath);
                 savedPhotos.add(imageBitmap);
             }
         }
@@ -217,18 +214,16 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         //TODO: start photocropping with code then when press back set photo data as list of paths then update here
         //  also consider case where cropper goes to game, then back to here directly from solved UI
-        Log.i(TAG, "requestCode: "+requestCode);
-        Log.i(TAG, "resultCode: "+resultCode);
         if (requestCode == REQUEST_PHOTO_CROPPING && resultCode == RESULT_OK && data != null) {
             // must update recycler view adapter for photos, as new photos may have been loaded, notify adapter data changed
-            ArrayList<String> newPhotos= data.getStringArrayListExtra("savedPhotos");
+            ArrayList<String> newPhotos = data.getStringArrayListExtra("savedPhotos");
             float density = getResources().getDisplayMetrics().density;
             long recyclerViewPx = Math.round(150 * density);
             // create bitmap for each new photo and add to adapters data set
             for (String photoPath : newPhotos) {
                 if (photoPath != null) {  // just to be sure no null paths sneak in
                     photoPaths.add(photoPath);
-                    Drawable imageBitmap = scalePhoto((int)recyclerViewPx, photoPath);
+                    Drawable imageBitmap = scalePhoto((int) recyclerViewPx, photoPath);
                     savedPhotos.add(imageBitmap);
                 }
             }

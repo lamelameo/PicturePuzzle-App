@@ -1,12 +1,13 @@
 package com.example.lamelameo.picturepuzzle;
 
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.os.*;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.SystemClock;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
@@ -14,24 +15,28 @@ import android.support.v7.widget.GridLayout;
 import android.util.Log;
 import android.view.*;
 import android.widget.*;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.Random;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFragmentInteractionListener {
 
     private static final String TAG = "PuzzleActivity";
-    private ArrayList<Drawable> bitmaps = new ArrayList<>();
+    private final ArrayList<Drawable> bitmaps = new ArrayList<>();
     private ArrayList<ArrayList<ImageView>> cellRows, cellCols;
     private ArrayList<ImageView> gridCells;
     private int emptyCellIndex, numRows, timerCount, puzzleNum, numMoves;
-    private VelocityTracker mVelocityTracker = null;
-    private float xDown, yDown;
-    private ArrayList<String> savedDataList = new ArrayList<>();
+    private final ArrayList<String> savedDataList = new ArrayList<>();
     private TextView moveCounter;
     private boolean gamePaused = true, newBestData, hintShowing = false, wasGamePaused = true, gameSolved = false,
-            returnMain=false;
+            returnMain = false;
     private Runnable timerRunnable;
     private PauseMenu pauseMenu;
     private int[] bestData;
@@ -42,6 +47,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
      * Create a randomised list of indexes to randomise the image grid, and load the cell images to the grid according to
      * the randomised order. Add cell tags for tracking of the images as they are moved by user. Set cell onClickListener
      * to allow user to click or swipe cells to move the images, and add pause button listener, to open pause UI.
+     *
      * @param savedInstanceState previously saved instance of the activity
      */
     @Override
@@ -51,92 +57,41 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
 
         // first get relevant chosen settings from main activity
         final GridLayout puzzleGrid = findViewById(R.id.gridLayout);
-        final int numCols = getIntent().getIntExtra("numColumns", 4);
-        numRows = numCols;
-        int gridSize = puzzleGrid.getLayoutParams().width;
+        numRows = getIntent().getIntExtra("numColumns", 4);
         puzzleNum = getIntent().getIntExtra("puzzleNum", 0);
-        String photoPath = getIntent().getStringExtra("photoPath");
-
-        // create puzzle piece bitmaps using the given image and add to bitmaps list
-        Bitmap bmp;
-        if (photoPath == null) {  // no photo taken, so use the selected app photo, or appropriate default image
-            String appPhotoPath = getIntent().getStringExtra("appPhotoPath");
-            if (appPhotoPath != null) {  // selected an app photo
-                bmp = scalePhoto(gridSize, appPhotoPath);
-            } else {  // selected a default image, or no selection
-                int gridBitmap = getIntent().getIntExtra("drawableId", R.drawable.dfdfdefaultgrid);
-                bmp = BitmapFactory.decodeResource(getResources(), gridBitmap);
-            }
-        } else {  // have taken a photo - so use it for the image
-            bmp = scalePhoto(gridSize, photoPath);
-        }
-        int imageSize = bmp.getWidth();
-        createBitmapGrid(bmp, numCols, numCols, imageSize);
 
         // initialise grid settings
-        puzzleGrid.setColumnCount(numCols);
-        puzzleGrid.setRowCount(numCols);
-        emptyCellIndex = numCols*numCols-1;
-        int gridWidth = puzzleGrid.getLayoutParams().width;  //TODO: could change this based on screen?
-
+        puzzleGrid.setColumnCount(numRows);
+        puzzleGrid.setRowCount(numRows);
+        emptyCellIndex = numRows * numRows - 1;
         // initialise lists to hold grid objects
-        gridCells = new ArrayList<>(numCols*numCols);
+        gridCells = new ArrayList<>(numRows * numRows);
         cellRows = new ArrayList<>(numRows);
-        cellCols =  new ArrayList<>(numCols);
-        for (int x=0; x<numCols; x++) {
+        cellCols = new ArrayList<>(numRows);
+        for (int x = 0; x < numRows; x++) {
             cellRows.add(new ArrayList<ImageView>());
             cellCols.add(new ArrayList<ImageView>());
         }
 
-        // create randomised grid list - contains indexes in random order which can be used to assign bitmaps to cells
-        ArrayList<Integer> randomisedGrid = randomiseGrid(numCols);
-
-        // add cells to grid and set their now randomised images
-        //TODO: allow for m x n sized grids?
-        for (int x=0; x<numCols; x++) {
-            for (int y=0; y<numCols; y++) {
-                final int index = x*numCols + y;
-                ImageView gridCell = new ImageView(this);
-                // set cell size based on size of grid
-                int size = gridWidth/numCols;
-                gridCell.setLayoutParams(new ViewGroup.LayoutParams(size, size));
-                // add cell to grid
-                puzzleGrid.addView(gridCell, index);
-                //add cell to appropriate row/col lists
-                gridCells.add(gridCell);
-                cellRows.get(x).add(gridCell);
-                cellCols.get(y).add(gridCell);
-
-                // setting images and tags for cells
-                if (index == bitmaps.size() - 1) {  // leave last cell with no image
-                    int[] cellTag = {index, index};
-                    gridCell.setTag(cellTag);
-                } else {  // set all other cells with a randomised image excluding the last cells image as it must be empty
-                    int rngBitmapIndex = randomisedGrid.get(index);
-                    // set the cells starting image
-                    gridCell.setImageDrawable(bitmaps.get(rngBitmapIndex));
-                    //set cell tags corresponding to the cell position and set image for tracking/identification purposes
-                    int[] cellTag = {index, rngBitmapIndex};
-                    gridCell.setTag(cellTag);
-                }
-
-                // set click/touch listeners for cells
-                //TODO: maybe use custom imageviews for cells as this warning appears about not overriding performclick..
-                gridCell.setOnTouchListener(swipeListener);
-                gridCell.setOnClickListener(cellClickListener);
-
-            }
+        // create cell bitmaps using the given image then create cell objects and set the images to relevant cell
+        Bitmap bmp;
+        String photoPath = getIntent().getStringExtra("photoPath");
+        if (photoPath == null) {  // default image
+            bmp = BitmapFactory.decodeResource(getResources(),
+                    getIntent().getIntExtra("drawableId", R.drawable.dfdfdefaultgrid));
+        } else {  // given an image path
+            bmp = scalePhoto(puzzleGrid.getLayoutParams().width, photoPath);
         }
+        createBitmapGrid(bmp, numRows, numRows);
+        createPuzzleCells(puzzleGrid);
 
         // show the saved best time and move data for the given puzzle
         TextView bestTimeView = findViewById(R.id.bestTimeView);
         bestData = puzzleBestData();
         if (bestData[0] != -1) {
-            int secs = bestData[0] % 60;
-            int mins = bestData[0] / 60;
-            int bestMoves = bestData[1];
+            int secs = bestData[0] % 60, mins = bestData[0] / 60, bestMoves = bestData[1];
             bestTimeView.setText(String.format(Locale.getDefault(), "Best Time: %02d:%02d\nBest Moves: %d",
-                                 mins, secs, bestMoves));
+                    mins, secs, bestMoves));
         }
 
         // initialise game timer and its runnable
@@ -212,70 +167,93 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
             numMoves = savedInstanceState.getInt("moves");
             gamePaused = savedInstanceState.getBoolean("paused");
             gameSolved = savedInstanceState.getBoolean("isSolved");
-            ArrayList<Integer> savedGrid = savedInstanceState.getIntegerArrayList("cellStates");
+            setCellData(savedInstanceState.getIntegerArrayList("cellStates"));
             // Update move counter and timer if the game was started before rotation
             if (numMoves != 0) {
                 moveCounter.setText(String.valueOf(numMoves));
             }
             if (timerCount != 0) {
-                int seconds = timerCount % 60;
-                int minutes = timerCount / 60;
-                timer.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
+                timer.setText(String.format(Locale.getDefault(), "%02d:%02d",
+                        timerCount / 60, timerCount % 60));
             }
-            // onPause called before onDestroy, so fragment will be present, must handle this depending if paused or not
-            LinearLayout pauseContainer = findViewById(R.id.pauseContainer);
-            Log.i(TAG, "onCreate:paused? "+ gamePaused);
-            // replace pause UI fragment with newly created instance or it will cause issues...
-            FragmentManager manager = getSupportFragmentManager();
-            FragmentTransaction fragTrans = manager.beginTransaction();
-            fragTrans.replace(R.id.pauseContainer, pauseMenu);
-            // If pause UI was active, keep new instance and make it visible, else remove it and hide container
-            // -- CAN change to hide/ show fragment? OR USE OLD FRAGMENT??
-            if (!gamePaused || timerCount == 0 || gameSolved) {  // game had no pause UI active when rotated
-                fragTrans.remove(pauseMenu);
-                if (timerCount != 0 && !gameSolved) {  // game was running must resume timer
-                    startTimer();
-                }
-                if (gameSolved) {  // must inflate solved UI if solved, set appropriate text
-                    solvedPuzzleUI(bestData);
-                }
-            } else {  // app was in pause UI when rotated, must make it visible again
-                pauseContainer.setVisibility(View.VISIBLE);
-                pauseContainer.setClickable(true);
-            }
-            fragTrans.commit();
-            // setting images and tags for cells
-            int cellIndex = -1;
-            for (ImageView cell: gridCells) {
-                cellIndex += 1;
-                int cellState = 0;
-                if (savedGrid != null) {
-                    cellState = savedGrid.get(cellIndex);
-                }
-                // update cell tag
-                int[] newTag = {cellIndex, cellState};
-                cell.setTag(newTag);
-                // update cell images
-                if (cellState != bitmaps.size() - 1) {
-                    cell.setImageDrawable(bitmaps.get(cellState));
-                } else {
-                    emptyCellIndex = cellIndex;
-                    cell.setImageDrawable(null);
-                }
-
-            }
-
+            // handle previously set game state
+            handlePause();
         }
+    }
 
+    private void handlePause() {
+        // onPause called before onDestroy, so fragment will be present, must handle this depending if paused or not
+        LinearLayout pauseContainer = findViewById(R.id.pauseContainer);
+        // replace pause UI fragment with newly created instance or it will cause issues...
+        FragmentManager manager = getSupportFragmentManager();
+        FragmentTransaction fragTrans = manager.beginTransaction();
+        fragTrans.replace(R.id.pauseContainer, pauseMenu);
+        // If pause UI was active, keep new instance and make it visible, else remove it and hide container
+        // -- CAN change to hide/ show fragment? OR USE OLD FRAGMENT??
+        if (!gamePaused || timerCount == 0 || gameSolved) {  // game had no pause UI active when rotated
+            fragTrans.remove(pauseMenu);
+            if (timerCount != 0 && !gameSolved) {  // game was running must resume timer
+                startTimer();
+            }
+            if (gameSolved) {  // must inflate solved UI if solved, set appropriate text
+                solvedPuzzleUI(bestData);
+            }
+        } else {  // app was in pause UI when rotated, must make it visible again
+            pauseContainer.setVisibility(View.VISIBLE);
+            pauseContainer.setClickable(true);
+        }
+        fragTrans.commit();
+    }
+
+    private void setCellData(ArrayList<Integer> savedGrid) {
+        // setting images and tags for cells
+        int cellIndex = 0;
+        for (ImageView cell : gridCells) {
+            int cellState = savedGrid.get(cellIndex);
+            int[] newTag = {cellIndex, cellState};
+            cell.setTag(newTag);
+            if (cellState != bitmaps.size() - 1) {
+                cell.setImageDrawable(bitmaps.get(cellState));
+            } else {
+                emptyCellIndex = cellIndex;
+                cell.setImageDrawable(null);
+            }
+            cellIndex += 1;
+        }
+    }
+
+    private void createPuzzleCells(GridLayout puzzleGrid) {
+        // create randomised grid list - contains indexes in random order which can be used to assign bitmaps to cells
+        ArrayList<Integer> randomisedGrid = randomiseGrid(numRows);
+        // add cells to grid and set their now randomised images
+        for (int index = 0; index < bitmaps.size(); index++) {
+            // TODO: send settings to cell objects when created rather than doing manually?
+            PuzzleCellView gridCell = new PuzzleCellView(this);
+            int size = puzzleGrid.getLayoutParams().width / numRows;
+            gridCell.setLayoutParams(new ViewGroup.LayoutParams(size, size));
+            puzzleGrid.addView(gridCell, index);
+            //add cell to appropriate row/col lists
+            gridCells.add(gridCell);
+            cellRows.get(index / numRows).add(gridCell);
+            cellCols.get(index % numRows).add(gridCell);
+            // setting images and tags for cells
+            if (index == bitmaps.size() - 1) {  // leave last cell with no image
+                gridCell.setTag(new int[]{index, index});
+            } else {  // set all other cells with a randomised image
+                int rngBitmapIndex = randomisedGrid.get(index);
+                gridCell.setImageDrawable(bitmaps.get(rngBitmapIndex));
+                gridCell.setTag(new int[]{index, rngBitmapIndex});
+            }
+        }
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         // Save game data...puzzle state, time/remainder, move count, best data, DONT redo onCreate??
-        ArrayList<Integer> cellStates = new ArrayList<>(numRows*numRows);
-        for (ImageView cell: gridCells) {
-            int[] cellTag = (int[])cell.getTag();
+        ArrayList<Integer> cellStates = new ArrayList<>(numRows * numRows);
+        for (ImageView cell : gridCells) {
+            int[] cellTag = (int[]) cell.getTag();
             cellStates.add(cellTag[1]);
         }
         outState.putIntegerArrayList("cellStates", cellStates);
@@ -354,11 +332,9 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         fragmentTrans.commit();
     }
 
-//    private long startTime;
-    private long tickRemainder = 0;
-    private long prevTickTime = 0;
-
-    private ScheduledThreadPoolExecutor timerExecutor = new ScheduledThreadPoolExecutor(1);
+    //    private long startTime;
+    private long tickRemainder = 0, prevTickTime = 0;
+    private final ScheduledThreadPoolExecutor timerExecutor = new ScheduledThreadPoolExecutor(1);
     private ScheduledFuture<?> timerFuture;
 
     /**
@@ -386,13 +362,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         long pauseTime = SystemClock.uptimeMillis();
         long elapsedSincePrevTick = pauseTime - prevTickTime;
         tickRemainder = 1000 - elapsedSincePrevTick;
-
-        //convert to string to take only last 3 integer values (take sub second values)
-//        long elapsedTime = pauseTime - startTime;
-//        String remainderStr = String.valueOf(elapsedTime);
-//        String remainderHundreds = remainderStr.substring(remainderStr.length() - 3);
-//        long remainder = 1000 - Integer.valueOf(remainderHundreds);
-
         // stop scheduled tasks
         if (timerFuture != null) {
             timerFuture.cancel(false);
@@ -407,7 +376,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     @Override
     protected void onPause() {
         super.onPause();
-        Log.i(TAG, "onPause: ");
         // if called after a back press, then device navigates back to main, dont want to open pause UI
         if (returnMain) {
             return;
@@ -420,11 +388,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         }
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-    }
-
     /**
      * Open the pause UI if onPause was called while the game was running. Used for instances such as app moving to background
      * without the user manually pausing. Take no action if the timer had not started, or game was paused already.
@@ -432,14 +395,14 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     @Override
     protected void onResume() {
         super.onResume();
-        Log.i(TAG, "onResume: ");
+//        Log.i(TAG, "onResume: ");
     }
 
     int getEmptyCellIndex() {
         return emptyCellIndex;
     }
 
-    int getNumRows()  {
+    int getNumRows() {
         return numRows;
     }
 
@@ -456,6 +419,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
      * to save the following game data: lowest amount of time and moves taken to complete each puzzle
      * If the file has already been created, then search the file for the saved data for the current puzzle and return it
      * (if any) else return placeholder values to signify no data is available
+     *
      * @return an array[2] containing an int for both the saved time and moves data
      */
     private int[] puzzleBestData() {
@@ -467,7 +431,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         String[] puzzleStrings = {"defaultgrid: ", "carpet: ", "cat: ", "clock: ", "crab: ",
                 "darklights: ", "nendou: ", "razer: ", "saiki: ", "mms: "};
 
-        Log.i(TAG, "puzzleNum: "+puzzleNum);
+//        Log.i(TAG, "puzzleNum: " + puzzleNum);
         try {  // if file already created, read file and get the relevant time, append lines to an array for easy access
             saveTimesFile = openFileInput("gametimes");
             BufferedReader reader = new BufferedReader(new InputStreamReader(saveTimesFile));
@@ -479,7 +443,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
             }
             // loop through lines till we get the puzzle we are looking for and get the saved data from that line
             while ((line = reader.readLine()) != null) {
-                Log.i(TAG, "savefile line: " + line);
+//                Log.i(TAG, "savefile line: " + line);
                 // NOTE: only call method once or this will make the savedDataList have twice the entries, causing bugs
                 savedDataList.add(line);
                 if (currentLine == puzzleNum) {
@@ -487,7 +451,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
                     int timeEndIndex = line.indexOf(",");  // indexOf will give -1 if not found ie no data for the puzzle
                     if (timeEndIndex != -1) {  // if there is saved data then get it
                         savedData[0] = Integer.parseInt(line.substring(timeStartIndex, timeEndIndex));
-                        savedData[1] = Integer.parseInt(line.substring(timeEndIndex+1));
+                        savedData[1] = Integer.parseInt(line.substring(timeEndIndex + 1));
                     }
                 }
                 currentLine += 1;
@@ -504,20 +468,10 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
                 // string builder contains a single string separated by newlines with blank save data
                 String fileContents = stringBuilder.toString();
                 // create file containing the string builder string
-                FileOutputStream outputStream = null;
-                try {
-                    outputStream = openFileOutput("gametimes", Context.MODE_PRIVATE);
+                try (FileOutputStream outputStream = openFileOutput("gametimes", Context.MODE_PRIVATE)) {
                     outputStream.write(fileContents.getBytes());
                 } catch (Exception writeError) {
-                    Log.i(TAG, "write exception: "+writeError);
-                } finally {  //TODO: need finally block to close outputstream?
-                    if (outputStream != null) {
-                        try {
-                            outputStream.close();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
+                    Log.i(TAG, "write exception: " + writeError);
                 }
             }
 
@@ -536,8 +490,9 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
 
     /**
      * Called when a puzzle is successfully solved, compares the time and moves taken to complete the puzzle
-     *  to the saved data for the lowest value of each of these taken to complete the same puzzle (if any)
-     *  updates the saved data file if either (or both) value(s) for the completed puzzle is lower than the saved data
+     * to the saved data for the lowest value of each of these taken to complete the same puzzle (if any)
+     * updates the saved data file if either (or both) value(s) for the completed puzzle is lower than the saved data
+     *
      * @param gameData array[2] containing an int for the amount of time (seconds) and moves to complete the puzzle
      */
     private void saveGameData(int[] gameData) {
@@ -561,7 +516,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
             newData = puzzleIdentifier + gameTime + "," + gameMoves;
         } else {  // there is saved data, so check if game time/moves and update if either are lower
             String timeString = savedData.substring(timeStartIndex, timeEndIndex);
-            String moveString = savedData.substring(timeEndIndex+1);
+            String moveString = savedData.substring(timeEndIndex + 1);
             // time and moves are lower than saved values, so update
             if (gameData[0] < Integer.parseInt(timeString) && gameData[1] < Integer.parseInt(moveString)) {
                 newData = puzzleIdentifier + gameTime + "," + gameMoves;
@@ -580,107 +535,82 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
             savedDataList.set(puzzleNum, newData);
             // use string builder to concatenate all strings
             for (String element : savedDataList) {
-                Log.i(TAG, "saveGameData listLine: "+element);
+//                Log.i(TAG, "saveGameData listLine: " + element);
                 stringBuilder.append(element).append("\n");
             }
             String fileContents = stringBuilder.toString();
-            Log.i(TAG, "saveGameData fileContents: "+fileContents);
+//            Log.i(TAG, "saveGameData fileContents: " + fileContents);
             // overwrite the old file to contain the updated data
-            FileOutputStream outputStream = null;
-            try {
-                outputStream = openFileOutput("gametimes", Context.MODE_PRIVATE);
+            try (FileOutputStream outputStream = openFileOutput("gametimes", Context.MODE_PRIVATE)) {
                 outputStream.write(fileContents.getBytes());
             } catch (Exception writeError) {
-                Log.i(TAG, "write exception: "+writeError);
-            } finally {
-                if (outputStream != null) {
-                    try {
-                        outputStream.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
+                Log.i(TAG, "write exception: " + writeError);
             }
         }
     }
 
     /**
      * Create a list containing cell position indexes (0-14) in a random order which can be used to arrange bitmaps
-     * in the grid in this randomised order. This order of cells is checked for its solvability and returns the list
-     * if it is, or repeats the process if not (ie. repeats until it is a solvable grid order).
+     * in the grid in this randomised order. This order of cells is checked for a property which tells us if the puzzle
+     * can be solved. If it cannot be solved, we simply have to swap two items and it is solvable. Once solvable, we
+     * return the ArrayList.
+     *
      * @param numCols number of columns in the puzzle grid
      */
     private ArrayList<Integer> randomiseGrid(int numCols) {
         // initialise objects and set variables
         Random random = new Random();
-        int gridSize = numCols*numCols;
+        int gridSize = numCols * numCols;
         ArrayList<Integer> randomisedGrid = new ArrayList<>(gridSize);
-        ArrayList<Integer> posPool = new ArrayList<>(gridSize-1);
+        ArrayList<Integer> posPool = new ArrayList<>(gridSize - 1);
 
-        // list of ascending values from 0 - size of grid used for tracking values tested for inversions
-//        ArrayList<Integer> unTestedValues = new ArrayList<>();
+        // initialise variables for start of each loop
+        int bound = gridSize - 1;  // bounds for random generator...between 0 (inclusive) and number (exclusive)
+        for (int x = 0; x < bound; x++) {  // pool for random indexes to be drawn from - exclude last cell index
+            posPool.add(x);
+        }
 
-        while (true) {  // create randomised grid, check if solvable, then break if it is
-            // initialise variables for start of each loop
-            int bound = gridSize-1;  // bounds for random generator...between 0 (inclusive) and number (exclusive)
-            randomisedGrid.clear();
-            for (int x=0; x<gridSize-1; x++) {  // pool for random indexes to be drawn from - exclude last cell index
-                posPool.add(x);
-            }
+        // randomise grid and create list with outcome
+        for (int x = 0; x < gridSize - 1; x++) {
+            int rngIndex = random.nextInt(bound);  // gets a randomised number within the pools bounds
+            int rngBmpIndex = posPool.get(rngIndex); // get the bitmap index from the pool using the randomised number
+            posPool.remove((Integer) rngBmpIndex);  // remove used number from the pool - use Integer else it takes as Arrayindex
+            bound -= 1;  // lower the bounds by 1 to match the new pool size so the next cycle can function properly
+            randomisedGrid.add(rngBmpIndex);  // add the randomised bmp index to the gridList
+        }
+        randomisedGrid.add(gridSize - 1);
 
-            // randomise grid and create list with outcome
-            for (int x=0; x<gridSize; x++) {
-                if (x == gridSize-1) {  // add last index to last in list to ensure it is empty
-                    randomisedGrid.add(gridSize-1);
-                } else {
-                    int rngIndex = random.nextInt(bound);  // gets a randomised number within the pools bounds
-                    int rngBmpIndex = posPool.get(rngIndex); // get the bitmap index from the pool using the randomised number
-                    posPool.remove((Integer) rngBmpIndex);  // remove used number from the pool - use Integer else it takes as Arrayindex
-                    bound -= 1;  // lower the bounds by 1 to match the new pool size so the next cycle can function properly
-                    randomisedGrid.add(rngBmpIndex);  // add the randomised bmp index to the gridList
+        // n=odd -> inversions: even = solvable
+        // n=even -> empty cell on even row (from bottom: 1,2,3++ = 1 for bottom right) + inversions: odd = solvable
+        //        -> empty cell on odd row + inversions: even = solvable
+        // empty cell always on bottom right so both odd and even size grids need even inversions
+        // inversion: position pairs (a,b) where (list) index a < index b and (value) a > b have to check all
+        int inversions = 0;
+        for (int index = 0; index < gridSize - 1; index++) {  // test all grid cells for pairs with higher index cells
+            int currentNum = randomisedGrid.get(index);
+            for (int x = index + 1; x < gridSize; x++) {  // find all pairs with higher index than current selected cell
+                int pairNum = randomisedGrid.get(x);  // get the next highest index cell
+                if (currentNum > pairNum) {  // add inversion if paired cell value is less than current cell value
+                    inversions += 1;
                 }
-            }
-
-            // n=odd -> inversions: even = solvable
-            // n=even -> empty cell on even row (from bottom: 1,2,3++ = 1 for bottom right) + inversions: odd = solvable
-            //        -> empty cell on odd row + inversions: even = solvable
-            // inversion: position pairs (a,b) where (list) index a < index b and (value) a > b have to check all
-            int inversions = 0;
-            for (int index=0; index<gridSize-1; index++) {  // test all grid cells for pairs with higher index cells
-                int currentNum = randomisedGrid.get(index);
-                for (int x=index+1; x<gridSize; x++) {  // find all pairs with higher index than current selected cell
-                    int pairNum = randomisedGrid.get(x);  // get the next highest index cell
-                    if (currentNum > pairNum) {  // add inversion if paired cell value is less than current cell value
-                        inversions += 1;
-                    }
-                }
-            }
-
-            Log.i(TAG, "randomiseGrid: inversions "+inversions);
-            // if randomised grid is solvable then break the while loop and return that grid - else next loop creates new grid
-            if (inversions%2 == 0) {  // empty cell always on bottom right so both odd and even size grids need even inversions
-                break;
             }
         }
-        return randomisedGrid;
-    }
 
-    /**
-     * convert density independent pixels to pixels using the device's pixel density
-     * @param dp amount to be converted from dp to px
-     * @return the value converted to units of pixels as an integer (rounds down)
-     */
-    int dpToPx(float dp) {
-        float density = getResources().getDisplayMetrics().density;
-        long pixels = Math.round(dp * density);  // rounds up/down around 0.5
-        return (int) pixels;
+        // if randomised grid is not solvable then swap first two items to make it solvable then return that grid
+        if (inversions % 2 != 0) {
+            int swap = randomisedGrid.get(0);
+            randomisedGrid.set(0, randomisedGrid.get(1));
+            randomisedGrid.set(1, swap);
+        }
+        return randomisedGrid;
     }
 
     /**
      * Scale an image from a file path to a specific views size, and return as a Bitmap
      * Intended to be used for photos taken with a camera intent so images are by default in landscape
      * Therefore images are also rotated 90 degrees
-     * @param viewSize size of the (pixels) view that the image is intended to be placed into
+     *
+     * @param viewSize  size of the (pixels) view that the image is intended to be placed into
      * @param photopath file path of the image to be scaled
      * @return the scaled and rotated image as a Bitmap object
      */
@@ -691,7 +621,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         BitmapFactory.decodeFile(photopath, bmOptions);
         int photoW = bmOptions.outWidth;
         int photoH = bmOptions.outHeight;
-        int scaleFactor = Math.min(photoW/viewSize, photoH/viewSize);
+        int scaleFactor = Math.min(photoW / viewSize, photoH / viewSize);
         bmOptions.inJustDecodeBounds = false;
         bmOptions.inSampleSize = scaleFactor;
         return BitmapFactory.decodeFile(photopath, bmOptions);
@@ -700,25 +630,24 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
 
     /**
      * create the grid of smaller cell bitmaps using the chosen image and grid size and add them to the bitmaps list
-     * @param bmp bitmap image to be used to create grid of images for the puzzle
-     * @param rows number of rows to split the grid into
+     *
+     * @param bmp     bitmap image to be used to create grid of images for the puzzle
+     * @param rows    number of rows to split the grid into
      * @param columns number of columns to split the grid into
-     * @param imageSize size of the bitmap image (in pixels)
      */
-    private void createBitmapGrid(Bitmap bmp, int rows, int columns, int imageSize) {
+    private void createBitmapGrid(Bitmap bmp, int rows, int columns) {
         // determine cell size in pixels from the image size and set amount of rows/cols
-        int cellSize = imageSize/rows;
+        int cellSize = bmp.getWidth() / rows;
         // for each row loop 4 times creating a new cropped image from original bitmap and add to adapter dataset
-        for(int x=0; x<columns; x++) {
+        for (int x = 0; x < columns; x++) {
             // for each row, increment y value to start the bitmap at
-            float ypos = x*cellSize;
-            for(int y=0; y<rows; y++) {
+            float ypos = x * cellSize;
+            for (int y = 0; y < rows; y++) {
                 // loop through 4 positions in row incrementing the x value to start bitmap at
-                float xpos = y*cellSize;
-                Bitmap gridImage = Bitmap.createBitmap(bmp, (int)xpos, (int)ypos, cellSize, cellSize);
+                float xpos = y * cellSize;
+                Bitmap gridImage = Bitmap.createBitmap(bmp, (int) xpos, (int) ypos, cellSize, cellSize);
                 // converted to drawable for use of setImageDrawable to easily swap cell images
-                Drawable drawable = new BitmapDrawable(getResources(), gridImage);
-                bitmaps.add(drawable);
+                bitmaps.add(new BitmapDrawable(getResources(), gridImage));
             }
         }
     }
@@ -726,12 +655,13 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     /**
      * Determine if grid is solved by iterating through all cells to check if the cell position matches the set image
      * cell tag[0] gives position, tag[1] is the image index, if they are the same then image is in correct cell
+     *
      * @return a boolean which indicates whether the grid is solved or not
      */
     private boolean gridSolved() {
-        for (ImageView cell: gridCells) {
+        for (ImageView cell : gridCells) {
             // get the tags of each cell in the grid
-            int[] cellTag = (int[])cell.getTag();
+            int[] cellTag = (int[]) cell.getTag();
             if (cellTag[0] != cellTag[1]) {
                 return false;
             }
@@ -740,39 +670,10 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     }
 
     /**
-     * Handle single clicks on any cell other than the empty cell - these are filtered out in the touchListener.
-     * Checks if the clicked cell is a direct neighbour of the empty cell.
-     * If so then calls {@link #MoveCells} to handle movement of images/tags and checking if grid is solved.
-     */
-    private View.OnClickListener cellClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            ImageView cellImage = (ImageView)v;
-            int[] cellTag = (int[])cellImage.getTag();
-            int cellIndex = cellTag[0];
-            int lastCell = numRows*numRows-1;
-            // check if cell is in same row or column as empty cell
-            int emptyCellRow = (int)Math.floor(emptyCellIndex/(float)numRows);
-            int emptyCellCol = emptyCellIndex - emptyCellRow*numRows;
-            int cellRow = (int)Math.floor(cellIndex/(float)numRows);
-            int cellCol = cellIndex - cellRow*numRows;
-            // determine distance and direction from the empty cell, opposite to the swipe (move) direction
-            int cellsRowDiff = cellCol - emptyCellCol;  // left = -1, right = 1
-            int cellsColDiff = cellRow - emptyCellRow;  // up = -1, down = 1
-            // if cell is in same group then call movecells to make only one swap in the appropriate direction
-            if (cellRow == emptyCellRow && cellsRowDiff*cellsRowDiff == 1) {  // if cell is left/right of empty
-                MoveCells(1, emptyCellCol, lastCell, cellIndex, cellsRowDiff, cellRows.get(cellRow));
-            }
-            if (cellCol == emptyCellCol && cellsColDiff*cellsColDiff == 1) {  // if cell is up/down of empty
-                MoveCells(1, emptyCellRow, lastCell, cellIndex, cellsColDiff, cellCols.get(cellCol));
-            }
-        }
-    };
-
-    /**
      * Called when puzzle is solved, it makes a screen wide layout clickable and visible to render the game UI frozen
      * and inflates a new layout UI into this. This overlay UI shows the game and saved data for the puzzle and contains
      * buttons to allow the user to navigate back to the main activity or restart the current puzzle.
+     *
      * @param gameData an array containing the time and moves data for the completed puzzle.
      */
     private void solvedPuzzleUI(int[] gameData) {
@@ -784,24 +685,16 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         pauseContainer.setVisibility(View.VISIBLE);
 
         // set variables for the UI widgets
-        TextView bestsView = findViewById(R.id.puzzleBests);
-        TextView puzzleDataView = findViewById(R.id.puzzleDataView);
-        Button retryButton = findViewById(R.id.retryButton);
-        Button newButton = findViewById(R.id.newButton);
+        TextView bestsView = findViewById(R.id.puzzleBests), puzzleDataView = findViewById(R.id.puzzleDataView);
+        Button retryButton = findViewById(R.id.retryButton), newButton = findViewById(R.id.newButton);
 
         //set onclick listeners for the UI buttons
         retryButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // randomise grid or reset to starting state?
-                // if reset puzzle without creating new activity instance, then must reset all data and variables
-                // eg. class vars: gamePaused, gameData, etc. also local vars in onCreate OR save the randomised grid
-                // and call oncreate
                 startActivity(getIntent());
                 finish();
-                //TODO: doesnt work...saves data first before calling new instance,
-//                recreate();
-
             }
         });
         newButton.setOnClickListener(new View.OnClickListener() {
@@ -812,21 +705,14 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         });
 
         // set text to be displayed - message, game data, and saved data
-        String bestSecs;
-        String bestMins;
-        String bestMoves;
-        // there is no saved data for the current puzzle
-        if (bestData[0] == -1) {
-            bestSecs = "";
-            bestMins = "";
-            bestMoves = "";
-        } else {  // there is saved data
+        String bestSecs = "", bestMins = "", bestMoves = "";
+        // there is saved data
+        if (bestData[0] != -1) {
             bestSecs = String.valueOf(bestData[0] % 60);
             bestMins = String.valueOf(bestData[0] / 60);
             bestMoves = String.valueOf(bestData[1]);
         }
-        int puzzleSecs = gameData[0] % 60;
-        int puzzleMins = gameData[0] / 60;
+        int puzzleSecs = gameData[0] % 60, puzzleMins = gameData[0] / 60;
         // emoticons: 😃 😁 😄 😎 😊 ☻ 👍 🖒 ☜ ☞
         puzzleDataView.setText(String.format(Locale.getDefault(), "Puzzle Solved \uD83D\uDE0E \n" +
                         " %02d m : %02d s\n %d moves",
@@ -837,7 +723,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         // display a message if user achieved a new best
         if (newBestData) {
             Toast newBestToast = Toast.makeText(getApplicationContext(), "New Best \uD83D\uDC4D", Toast.LENGTH_LONG);
-//            int toastPosition = (int)pauseContainer.getY();
             newBestToast.setGravity(Gravity.TOP, 0, 150);
             newBestToast.show();
         }
@@ -846,18 +731,18 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
 
     /**
      * Called if a swipe in the valid direction occurs on a cell in the same group (row/column) of the empty cell or
-     if a click occurs on a direct neighbour of the empty cell. Consecutively swaps the cell image and image tag for the
-     empty cell with each cell in the group up to, and including, the touched cell. In effect, this shifts all cells from
-     that touched until the empty cell by one grid position, leaving the empty cell in the touched cells original position.
-     After this, the amount of moves for the puzzle is updated and {@link #gridSolved} is called to check if grid is solved.
-     * @param groupMoves the amount of cell moves to handle with this call; minimum = 1, maximum = 5
+     * if a click occurs on a direct neighbour of the empty cell. Consecutively swaps the cell image and image tag for the
+     * empty cell with each cell in the group up to, and including, the touched cell. In effect, this shifts all cells from
+     * that touched until the empty cell by one grid position, leaving the empty cell in the touched cells original position.
+     * After this, the amount of moves for the puzzle is updated and {@link #gridSolved} is called to check if grid is solved.
+     *
+     * @param groupMoves      the amount of cell moves to handle with this call; minimum = 1, maximum = 5
      * @param emptyGroupIndex the index of the empty cell within the group that the touched cell is also an element
-     * @param lastCell the index in the puzzle grid of the last cell
-     * @param gridIndex the index of the touched cell within the puzzle grid
-     * @param iterateSign value of +/- 1, used to iterate through the group in the correct direction depending on the swipe
-     * @param group an array corresponding to a row or column of the puzzle grid, containing the cell ImageViews in that group
+     * @param gridIndex       the index of the touched cell within the puzzle grid
+     * @param iterateSign     value of +/- 1, used to iterate through the group in the correct direction depending on the swipe
+     * @param group           an array corresponding to a row or column of the puzzle grid, containing the cell ImageViews in that group
      */
-    void MoveCells(int groupMoves, int emptyGroupIndex, int lastCell, int gridIndex, int iterateSign,
+    void MoveCells(int groupMoves, int emptyGroupIndex, int gridIndex, int iterateSign,
                    ArrayList<ImageView> group) {
         // start game timer on first move
         if (timerCount == 0) {
@@ -868,18 +753,16 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         for (int x = 0; x < groupMoves; x++) {  // incrementally swap cells from empty -> touched, in this order
             // adjacent cell to be swapped with empty has an index either +/- 1 from empty cells index in the group
             // increment - up/left, decrement - down/right, swapIndex is always the emptyCell index as we swap then loop
-            int swapIndex = emptyGroupIndex + (iterateSign*x);
-            ImageView swapCell = group.get(swapIndex + iterateSign);
-            ImageView emptyCell = group.get(swapIndex);
+            int swapIndex = emptyGroupIndex + (iterateSign * x);
+            ImageView swapCell = group.get(swapIndex + iterateSign), emptyCell = group.get(swapIndex);
             Drawable image = swapCell.getDrawable();
-            int[] swapTag = (int[])swapCell.getTag();
-            int[] emptyTag = (int[])emptyCell.getTag();
+            int[] swapTag = (int[]) swapCell.getTag(), emptyTag = (int[]) emptyCell.getTag();
             // set empty cells new image and tag
             emptyCell.setImageDrawable(image);
             emptyTag[1] = swapTag[1];
             // set touched cells new image and tag
             swapCell.setImageDrawable(null);
-            swapTag[1] = lastCell;  // use gridsize - 1 rather than empty cell tag as it was just changed
+            swapTag[1] = numRows * numRows - 1;  // use gridsize - 1 rather than empty cell tag as it was just changed
         }
         // update empty cell tracker to correspond to the new empty cell
         emptyCellIndex = gridIndex;
@@ -901,145 +784,45 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     /**
      * Determines if a swiped cell is within the same row or column as the empty cell and if the swipe was
      * in the direction of the empty cell - if so then calls {@link #MoveCells} to process the valid swipe
-     * @param view the swiped cell's view object
-     * @param gridCols the amount of columns in the puzzle grid
+     *
+     * @param view      the swiped cell's view object
+     * @param gridCols  the amount of columns in the puzzle grid
      * @param direction the direction of the swipe: right = 1, left = 2, down = 3, up = 4
      */
     void SwipeCell(View view, int gridCols, int direction) {
         // obtaining cell image, the row and column lists they are part of and their index in those lists
-        int[] cellTag = (int[])view.getTag();
+        int[] cellTag = (int[]) view.getTag();
         int gridIndex = cellTag[0];
-        int cellRow = (int)Math.floor(gridIndex/(float)gridCols);
-        int cellCol = gridIndex - cellRow*gridCols;
-        ArrayList<ImageView> row = cellRows.get(cellRow);
-        ArrayList<ImageView> col = cellCols.get(cellCol);
-
-        int lastCell = gridCols*gridCols - 1;
-        int emptyCellRow = (int)Math.floor(emptyCellIndex/(float)gridCols);
-        int emptyCellCol = emptyCellIndex - emptyCellRow*gridCols;
+        int cellRow = gridIndex / gridCols;
+        int cellCol = gridIndex - cellRow * gridCols;
+        int emptyCellRow = emptyCellIndex / gridCols;
+        int emptyCellCol = emptyCellIndex - emptyCellRow * gridCols;
         int numRowMoves = Math.abs(emptyCellCol - cellCol);
         int numColMoves = Math.abs(emptyCellRow - cellRow);
 
         // check if empty and touched cells are in same row/col and if correct swipe direction
         switch (direction) {
-            case(1):  // right swipe - empty row index > touched row index
+            case (1):  // right swipe - empty row index > touched row index
                 if (emptyCellRow == cellRow && emptyCellCol > cellCol) {  // cell columns give the index in row
-                    MoveCells(numRowMoves, emptyCellCol, lastCell, gridIndex,-1, row);
+                    MoveCells(numRowMoves, emptyCellCol, gridIndex, -1, cellRows.get(cellRow));
                 }
                 break;
-            case(2):  // left swipe - empty row index < touched row index
+            case (2):  // left swipe - empty row index < touched row index
                 if (emptyCellRow == cellRow && emptyCellCol < cellCol) {
-                    MoveCells(numRowMoves, emptyCellCol, lastCell, gridIndex,1, row);
+                    MoveCells(numRowMoves, emptyCellCol, gridIndex, 1, cellRows.get(cellRow));
                 }
                 break;
-            case(3):  // down swipe - empty col index > touched col index
+            case (3):  // down swipe - empty col index > touched col index
                 if (emptyCellCol == cellCol && emptyCellRow > cellRow) {  // cell rows give the index in column
-                    MoveCells(numColMoves, emptyCellRow, lastCell, gridIndex,-1, col);
+                    MoveCells(numColMoves, emptyCellRow, gridIndex, -1, cellCols.get(cellCol));
                 }
                 break;
-            case(4):  // up swipe - empty col index < touched col index
+            case (4):  // up swipe - empty col index < touched col index
                 if (emptyCellCol == cellCol && emptyCellRow < cellRow) {
-                    MoveCells(numColMoves, emptyCellRow, lastCell, gridIndex,1, col);
+                    MoveCells(numColMoves, emptyCellRow, gridIndex, 1, cellCols.get(cellCol));
                 }
                 break;
         }
     }
 
-    /**
-     * Handle simple touch events as either a swipe (up/down/left/right) or a click - multi touch is not supported.
-     * Swipe direction is determined by distance travelled in the x/y planes between touch/release and its release velocity.
-     * Distance and velocity must be greater than DISTANCE_THRESHOLD and VELOCITY_THRESHOLD, respectively, to be valid.
-     * An event that doesn't fit any of the set criteria is considered a click and handed to the onClick listener. */
-    private View.OnTouchListener swipeListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            int[] tag = (int[])v.getTag();
-            // consume touch with no action taken if empty cell is touched
-            if (tag[0] == emptyCellIndex) {
-                return true;
-            }
-
-            // get pointer id which identifies the touch...can handle multi touch events
-            int action = event.getActionMasked();
-            int index = event.getActionIndex();
-            int pointerId = event.getPointerId(index);
-
-            // if the pointer id isnt 0, a touch is currently being processed - ignore this new one to avoid crashes
-            if (pointerId != 0) {
-                Log.i(TAG, "pointer ID: "+pointerId);
-                Log.i(TAG, "multi touch detected");
-                return true;
-            }
-
-            // TODO: alternative method to detect swipe is to use gesture detector
-            final int DISTANCE_THRESHOLD = dpToPx(11);  // ~1/3 the cell size
-            final int VELOCITY_THRESHOLD = 200;  // change value if unhappy with sensitivity
-            int gridSize = (int)Math.sqrt(gridCells.size());
-
-            float xVelocity, xCancel, xDiff, yVelocity, yCancel, yDiff;
-            switch (action) {
-                case MotionEvent.ACTION_DOWN:
-                    Log.i(TAG, "onDown");
-                    if (mVelocityTracker == null) {
-                        mVelocityTracker = VelocityTracker.obtain();
-                    } else {
-                        mVelocityTracker.clear();
-                    }
-                    mVelocityTracker.addMovement(event);
-                    xDown = event.getRawX();
-                    yDown = event.getRawY();
-                    break;
-                case MotionEvent.ACTION_MOVE:
-                    Log.i(TAG, "onMove: ");
-                    mVelocityTracker.addMovement(event);
-                    mVelocityTracker.computeCurrentVelocity(1000);
-                    break;
-                case MotionEvent.ACTION_UP:
-                    Log.i(TAG, "onTouch: ");
-                case MotionEvent.ACTION_OUTSIDE:
-                    Log.i(TAG, "onOutside: ");
-                case MotionEvent.ACTION_CANCEL:
-                    Log.i(TAG, "onCancel");
-                    mVelocityTracker.addMovement(event);
-                    mVelocityTracker.computeCurrentVelocity(1000);
-                    xCancel = event.getRawX();
-                    yCancel = event.getRawY();
-                    xDiff = xCancel - xDown;
-                    yDiff = yCancel - yDown;
-                    xVelocity = mVelocityTracker.getXVelocity(pointerId);
-                    yVelocity = mVelocityTracker.getYVelocity(pointerId);
-                    // process swipes
-                    if (Math.abs(xDiff) > Math.abs(yDiff)) {  // potential horizontal swipe - check distance and velocity
-                        if (Math.abs(xDiff) > DISTANCE_THRESHOLD && Math.abs(xVelocity) > VELOCITY_THRESHOLD) {
-                            if (xDiff > 0) {  // right swipe
-                                SwipeCell(v, gridSize, 1);
-                            } else {  // left swipe
-                                SwipeCell(v, gridSize, 2);
-                            }
-                        } else {
-                            v.performClick();
-                        }
-                    } else {
-                        if (Math.abs(xDiff) < Math.abs(yDiff)) {  // potential vertical swipe
-                            if (Math.abs(yDiff) > DISTANCE_THRESHOLD && Math.abs(yVelocity) > VELOCITY_THRESHOLD) {
-                                if (yDiff > 0) {  // down swipe
-                                    SwipeCell(v, gridSize, 3);
-                                } else {  // up swipe
-                                    SwipeCell(v, gridSize, 4);
-                                }
-                            } else {
-                                v.performClick();
-                            }
-                        } else {  // if swipe isnt found to have happened by any of the set criteria
-                            v.performClick();
-                        }
-                    }
-                    // reset velocity tracker
-                    mVelocityTracker.recycle();
-                    mVelocityTracker = null;
-                    break;
-            }
-            return true;
-        }
-    };
 }
