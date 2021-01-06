@@ -156,7 +156,6 @@ public class MainActivity extends AppCompatActivity {
                         gameIntent.putExtra("drawableId", drawableInts[selectedImage]);
                         gameIntent.putExtra("puzzleNum", selectedImage);
                     } else {  // selection is from app photos
-                        //TODO: send photo path, with no puzzlenum extra as savefile does not support it
                         gameIntent.putExtra("photoPath", photoPaths.get(selectedImage));
                         gameIntent.putExtra("puzzleNum", -1);
                     }

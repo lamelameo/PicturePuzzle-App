@@ -293,6 +293,11 @@ public class PhotoCropping extends AppCompatActivity {
 
     }
 
+    /**
+     * Try to send a crop intent using the given input image Uri and output Uri and display a toast if it fails.
+     * @param input Uri of image to be cropped
+     * @param output Uri for cropped image to be saved into
+     */
     private void dispatchCropIntent(Uri input, Uri output) {
 //        Log.i(TAG, "dispatchCropIntent: ");
         Intent intent = new Intent("com.android.camera.action.CROP");
@@ -374,7 +379,6 @@ public class PhotoCropping extends AppCompatActivity {
      */
     private void savePhoto(Bitmap image) {
         //TODO: check device storage before saving
-
         File photoFile = null;
         if (mCurrentPhotoPath == null) {
             try {

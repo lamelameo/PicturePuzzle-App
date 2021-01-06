@@ -15,8 +15,6 @@ import android.support.v7.widget.GridLayout;
 import android.util.Log;
 import android.view.*;
 import android.widget.*;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -181,6 +179,11 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         }
     }
 
+    /**
+     * Called if we have a saved instance state to handle the pause UI fragment opened before the activity is destroyed.
+     * If the game was paused before activity was destroyed (such as by a screen orientation change), then the UI can be
+     * made visible, else we want a resumed or completed game state with the corresponding UI.
+     */
     private void handlePause() {
         // onPause called before onDestroy, so fragment will be present, must handle this depending if paused or not
         LinearLayout pauseContainer = findViewById(R.id.pauseContainer);
@@ -205,6 +208,10 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         fragTrans.commit();
     }
 
+    /**
+     * Set images and tags for cell objects from a saved instance state
+     * @param savedGrid ArrayList of integers corresponding to the saved cell states in ascending cell index order
+     */
     private void setCellData(ArrayList<Integer> savedGrid) {
         // setting images and tags for cells
         int cellIndex = 0;
@@ -222,6 +229,10 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         }
     }
 
+    /**
+     * Create cell objects and set their images and tags according to a generated randomised state
+     * @param puzzleGrid GridLayout which the cells are placed into
+     */
     private void createPuzzleCells(GridLayout puzzleGrid) {
         // create randomised grid list - contains indexes in random order which can be used to assign bitmaps to cells
         ArrayList<Integer> randomisedGrid = randomiseGrid(numRows);
