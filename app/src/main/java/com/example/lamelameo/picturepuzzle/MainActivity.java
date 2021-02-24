@@ -8,10 +8,10 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Environment;
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 import android.widget.*;
 
@@ -28,27 +28,6 @@ public class MainActivity extends AppCompatActivity {
     private int mGridRows;
     private boolean defaultAdapter;
     private final static int REQUEST_PHOTO_CROPPING = 1;
-
-    /**
-     * Scale an image to the size of a view, and rotate 90 degrees to obtain the image in portrait orientation
-     *
-     * @param viewSize  the size of the view for the image to be scaled to
-     * @param photopath the file path of the image to be scaled
-     * @return a Drawable of the given image scaled to a size suitable to fit into the target view
-     */
-    private Drawable scalePhoto(int viewSize, String photopath) {
-        // scale image previews to fit the allocated View to save app memory
-        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-        bmOptions.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(photopath, bmOptions);
-        int photoW = bmOptions.outWidth;
-        int photoH = bmOptions.outHeight;
-        int scaleFactor = Math.min(photoW / viewSize, photoH / viewSize);
-        bmOptions.inJustDecodeBounds = false;
-        bmOptions.inSampleSize = scaleFactor;
-        Bitmap bitmap = BitmapFactory.decodeFile(photopath, bmOptions);
-        return new BitmapDrawable(getResources(), bitmap);
-    }
 
     /**
      * Setup Buttons and their onClickListeners that allow the user to choose settings, take a photo, and start a puzzle.
@@ -72,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
         // improves performance given that recycler does not change size based on its contents (the images)
         mRecyclerView.setHasFixedSize(true);
         int orientation = getResources().getConfiguration().orientation;
-        // use layout manager -  horizontal orientation = 0, vertical = 1
+        // use layout manager - horizontal orientation = 0, vertical = 1
         RecyclerView.LayoutManager layoutManager;
         if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
             layoutManager = new LinearLayoutManager(this, 0, false);
@@ -164,6 +143,27 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    /**
+     * Scale an image to the size of a view, and rotate 90 degrees to obtain the image in portrait orientation
+     *
+     * @param viewSize  the size of the view for the image to be scaled to
+     * @param photopath the file path of the image to be scaled
+     * @return a Drawable of the given image scaled to a size suitable to fit into the target view
+     */
+    private Drawable scalePhoto(int viewSize, String photopath) {
+        // scale image previews to fit the allocated View to save app memory
+        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+        bmOptions.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(photopath, bmOptions);
+        int photoW = bmOptions.outWidth;
+        int photoH = bmOptions.outHeight;
+        int scaleFactor = Math.min(photoW / viewSize, photoH / viewSize);
+        bmOptions.inJustDecodeBounds = false;
+        bmOptions.inSampleSize = scaleFactor;
+        Bitmap bitmap = BitmapFactory.decodeFile(photopath, bmOptions);
+        return new BitmapDrawable(getResources(), bitmap);
     }
 
     /**

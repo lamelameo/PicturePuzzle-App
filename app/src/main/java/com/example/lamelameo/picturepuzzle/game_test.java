@@ -1,23 +1,16 @@
 package com.example.lamelameo.picturepuzzle;
 
-import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.*;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.media.JetPlayer;
-import android.provider.ContactsContract;
-import android.support.v4.view.GestureDetectorCompat;
-import android.support.v7.app.AppCompatActivity;
+import androidx.core.view.GestureDetectorCompat;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.*;
 import android.widget.*;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 
 public class game_test extends AppCompatActivity {
 

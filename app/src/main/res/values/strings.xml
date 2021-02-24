@@ -41,5 +41,6 @@
     <string name="move_arrows">move arrow</string>
     <string name="test">Move image to fit within square puzzle grid or use arrows.
                         Use buttons to zoom in or out.</string>
+    <string name="image_hint">Image Hint</string>
 
 </resources>

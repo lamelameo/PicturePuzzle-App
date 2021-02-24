@@ -27,7 +27,7 @@ public class RandomiserGenerator {
         int gridSize = 9;  // NOTE: use gridsize not cols
         // create File object and check if the file exists already, to add modifier if necessary so no conflict occurs
         String fileName = "gridsize(" + gridSize + ")_numgrids(" + numGenerated + ")_tableform";
-        String folderPath = "..\\GridRandomiserTesting\\test data\\";
+        String folderPath = "..\\test data\\";
         File generatedFile = new File(folderPath + fileName + ".txt");
         int copyDistinguisher = 0;
         while (generatedFile.exists()) {  // add suffix term to avoid conflict

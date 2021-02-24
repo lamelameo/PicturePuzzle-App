@@ -6,17 +6,18 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import androidx.fragment.app.Fragment;
 
 
 /**
- * A simple (totally unnecessary) {@link android.support.v4.app.Fragment} subclass.
+ * A simple {@link Fragment} subclass.
  * Activities that contain this fragment must implement the
  * {@link PauseMenu.OnFragmentInteractionListener} interface
  * to handle interaction events.
  * Use the {@link PauseMenu#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class PauseMenu extends android.support.v4.app.Fragment {
+public class PauseMenu extends Fragment {
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
@@ -109,6 +110,4 @@ public class PauseMenu extends android.support.v4.app.Fragment {
         void onClickResume();
         void onClickNewPuzzle();
     }
-
-
 }

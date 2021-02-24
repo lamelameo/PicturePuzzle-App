@@ -5,24 +5,23 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.SystemClock;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.GridLayout;
+import android.os.*;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.gridlayout.widget.GridLayout;
 import android.util.Log;
 import android.view.*;
 import android.widget.*;
+import com.example.lamelameo.picturepuzzle.databinding.ActivityPuzzleBinding;
+import com.example.lamelameo.picturepuzzle.databinding.PuzzleSolvedUiBinding;
+import com.example.lamelameo.picturepuzzle.ui.main.Ticker;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Random;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFragmentInteractionListener {
 
@@ -32,13 +31,13 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     private ArrayList<ImageView> gridCells;
     private int emptyCellIndex, numRows, timerCount, puzzleNum, numMoves;
     private final ArrayList<String> savedDataList = new ArrayList<>();
-    private TextView moveCounter;
     private boolean gamePaused = true, newBestData, hintShowing = false, wasGamePaused = true, gameSolved = false,
             returnMain = false;
     private Runnable timerRunnable;
     private PauseMenu pauseMenu;
     private int[] bestData;
-    private ImageView hintImage;
+    private Ticker mTicker;
+    private ActivityPuzzleBinding mBinding;
 
     /**
      * Retrieve data from main activity, and create the images for the grid cells using the given image and grid size.
@@ -52,24 +51,14 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_puzzle);
-
         // first get relevant chosen settings from main activity
-        final GridLayout puzzleGrid = findViewById(R.id.gridLayout);
         numRows = getIntent().getIntExtra("numColumns", 4);
         puzzleNum = getIntent().getIntExtra("puzzleNum", 0);
-
-        // initialise grid settings
-        puzzleGrid.setColumnCount(numRows);
-        puzzleGrid.setRowCount(numRows);
-        emptyCellIndex = numRows * numRows - 1;
-        // initialise lists to hold grid objects
-        gridCells = new ArrayList<>(numRows * numRows);
-        cellRows = new ArrayList<>(numRows);
-        cellCols = new ArrayList<>(numRows);
-        for (int x = 0; x < numRows; x++) {
-            cellRows.add(new ArrayList<ImageView>());
-            cellCols.add(new ArrayList<ImageView>());
-        }
+        // get binding and setup grid
+        mBinding = ActivityPuzzleBinding.inflate(getLayoutInflater());
+        //TODO separate grid into custom layout with methods to initialise it
+        final GridLayout puzzleGrid = mBinding.gridLayout;
+        initialiseGrid(puzzleGrid);
 
         // create cell bitmaps using the given image then create cell objects and set the images to relevant cell
         Bitmap bmp;
@@ -84,41 +73,50 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         createPuzzleCells(puzzleGrid);
 
         // show the saved best time and move data for the given puzzle
-        TextView bestTimeView = findViewById(R.id.bestTimeView);
+        //TODO: move saved data to database
         bestData = puzzleBestData();
         if (bestData[0] != -1) {
             int secs = bestData[0] % 60, mins = bestData[0] / 60, bestMoves = bestData[1];
-            bestTimeView.setText(String.format(Locale.getDefault(), "Best Time: %02d:%02d\nBest Moves: %d",
+            mBinding.bestTimeView.setText(String.format(Locale.getDefault(), "Best Time: %02d:%02d\nBest Moves: %d",
                     mins, secs, bestMoves));
         }
 
         // initialise game timer and its runnable
-        moveCounter = findViewById(R.id.moveCounter);
-        final TextView timer = findViewById(R.id.gameTimer);
         timerCount = 0;
+//        mTicker = new Ticker(new Handler(Looper.getMainLooper()) {
+//            @Override
+//            public void handleMessage(Message msg) {
+//                if(msg.what == 1) {
+//                    updateTimer(mBinding.gameTimer);
+//                }
+//            }
+//        });
+
         // Create runnable task (calls code in new thread) which increments a counter used as the timers text
         timerRunnable = new Runnable() {
             @Override
             public void run() {
                 // update timer every second, keeping track of current system time
                 // this way we can resume the timer after a pause mid tick, keeping accurate time
-                prevTickTime = SystemClock.uptimeMillis();
+                tickStartTime = SystemClock.uptimeMillis();
+                tickElapsed = 0;
                 timerCount += 1;
                 int seconds = timerCount % 60;
                 int minutes = timerCount / 60;  // rounds down the decimal if we use int
-                timer.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
+                mBinding.gameTimer.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
             }
         };
 
         // initialise pause button and pause menu fragment
         pauseMenu = PauseMenu.newInstance();
-        ImageButton pauseButton = findViewById(R.id.pauseButton);
-        pauseButton.setOnClickListener(new View.OnClickListener() {
+        mBinding.pauseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // pause the timer and open pause menu if game has started
+                //TODO: you cannot pause between 0-1s
                 if (timerCount != 0) {
                     pauseTimer();
+//                    mTicker.pauseTimer();
                     pauseFragment();
                 } else {
                     String toastText = "You have not started the puzzle!";
@@ -130,27 +128,27 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         });
 
         // Hint button makes original selected image visible over top of the puzzle grid to show cells solved order
-        TextView hintButton = findViewById(R.id.hintButton);
-        hintImage = findViewById(R.id.hintImage);
-        hintImage.setImageBitmap(bmp);
-        hintImage.setClickable(false);
-        hintImage.setVisibility(View.INVISIBLE);
+        //TODO: one handler for hint and ticker which receive messages when tick happens or hint is to be removed
+        mBinding.hintImage.setImageBitmap(bmp);
+        mBinding.hintImage.setClickable(false);
+        mBinding.hintImage.setVisibility(View.INVISIBLE);
         // use handler to call a runnable to make the image invisible after 1 second (can change if needed)
         final Handler hintHandler = new Handler();
         final Runnable futureRunnable = new Runnable() {
             @Override
             public void run() {
-                hintImage.setVisibility(View.INVISIBLE);
+                mBinding.hintImage.setVisibility(View.INVISIBLE);
                 hintShowing = false;
-                hintImage.setClickable(false);
+                mBinding.hintImage.setClickable(false);
             }
         };
-        hintButton.setOnClickListener(new View.OnClickListener() {
+        mBinding.hintButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                //TODO: extend timeout if hint is pressed whilst already shown?
                 if (!hintShowing) {  // show hint only if isnt already showing to remove redundant calls
-                    hintImage.setVisibility(View.VISIBLE);
-                    hintImage.setClickable(true);
+                    mBinding.hintImage.setVisibility(View.VISIBLE);
+                    mBinding.hintImage.setClickable(true);
                     hintHandler.postDelayed(futureRunnable, 1000);  // set to remove image in 1 second
                 }
             }
@@ -161,22 +159,47 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         if (savedInstanceState != null) {
             // get saved data from saved instance
             timerCount = savedInstanceState.getInt("timer");
-            tickRemainder = savedInstanceState.getLong("tickRemainder");
+            tickElapsed = savedInstanceState.getLong("tickElapsed");
             numMoves = savedInstanceState.getInt("moves");
             gamePaused = savedInstanceState.getBoolean("paused");
             gameSolved = savedInstanceState.getBoolean("isSolved");
             setCellData(savedInstanceState.getIntegerArrayList("cellStates"));
             // Update move counter and timer if the game was started before rotation
             if (numMoves != 0) {
-                moveCounter.setText(String.valueOf(numMoves));
+                mBinding.moveCounter.setText(String.valueOf(numMoves));
             }
             if (timerCount != 0) {
-                timer.setText(String.format(Locale.getDefault(), "%02d:%02d",
+                mBinding.gameTimer.setText(String.format(Locale.getDefault(), "%02d:%02d",
                         timerCount / 60, timerCount % 60));
             }
             // handle previously set game state
             handlePause();
         }
+    }
+
+    private void initialiseGrid(GridLayout puzzleGrid) {
+        // initialise grid settings
+        puzzleGrid.setColumnCount(numRows);
+        puzzleGrid.setRowCount(numRows);
+        emptyCellIndex = numRows * numRows - 1;
+        // initialise lists to hold grid objects
+        gridCells = new ArrayList<>(numRows * numRows);
+        cellRows = new ArrayList<>(numRows);
+        cellCols = new ArrayList<>(numRows);
+        for (int x = 0; x < numRows; x++) {
+            cellRows.add(new ArrayList<ImageView>());
+            cellCols.add(new ArrayList<ImageView>());
+        }
+    }
+
+    private void updateTimer(TextView timer) {
+        // update timer every second, keeping track of current system time
+        // this way we can resume the timer after a pause mid tick, keeping accurate time
+        timerCount += 1;
+        int seconds = timerCount % 60;
+        int minutes = timerCount / 60;  // rounds down the decimal if we use int
+        timer.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
+
     }
 
     /**
@@ -186,7 +209,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
      */
     private void handlePause() {
         // onPause called before onDestroy, so fragment will be present, must handle this depending if paused or not
-        LinearLayout pauseContainer = findViewById(R.id.pauseContainer);
         // replace pause UI fragment with newly created instance or it will cause issues...
         FragmentManager manager = getSupportFragmentManager();
         FragmentTransaction fragTrans = manager.beginTransaction();
@@ -197,13 +219,15 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
             fragTrans.remove(pauseMenu);
             if (timerCount != 0 && !gameSolved) {  // game was running must resume timer
                 startTimer();
+//                mTicker.setTickElapsed(tickElapsed);
+//                mTicker.startTimer();
             }
             if (gameSolved) {  // must inflate solved UI if solved, set appropriate text
                 solvedPuzzleUI(bestData);
             }
         } else {  // app was in pause UI when rotated, must make it visible again
-            pauseContainer.setVisibility(View.VISIBLE);
-            pauseContainer.setClickable(true);
+            mBinding.pauseContainer.setVisibility(View.VISIBLE);
+            mBinding.pauseContainer.setClickable(true);
         }
         fragTrans.commit();
     }
@@ -269,7 +293,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         }
         outState.putIntegerArrayList("cellStates", cellStates);
         outState.putInt("timer", timerCount);
-        outState.putLong("tickRemainder", tickRemainder);
+        outState.putLong("tickElapsed", tickElapsed);
         outState.putInt("moves", numMoves);
         outState.putBoolean("paused", wasGamePaused);
         outState.putBoolean("isSolved", gameSolved);
@@ -299,6 +323,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         pauseFragment();
         if (timerCount != 0) {  // resume timer only if it has been started already
             startTimer();
+//            mTicker.startTimer();
         }
     }
 
@@ -315,6 +340,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         if (gamePaused && !gameSolved && timerCount != 0) {  // pause fragment is open
             pauseFragment();
             startTimer();
+//            mTicker.startTimer();
         } else {  // fragment is not open - go back to main activity
             returnMain = true;
             finish();
@@ -326,54 +352,46 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
      * remove fragment and make its container invisible and unclickable. If game is unpaused do the opposite actions.
      */
     private void pauseFragment() {
-
-        LinearLayout pauseContainer = findViewById(R.id.pauseContainer);
         FragmentTransaction fragmentTrans = getSupportFragmentManager().beginTransaction();
         if (gamePaused) {  // game was paused, unpause and remove UI fragment
             fragmentTrans.remove(pauseMenu);
-            pauseContainer.setVisibility(View.INVISIBLE);
-            pauseContainer.setClickable(false);
+            mBinding.pauseContainer.setVisibility(View.INVISIBLE);
+            mBinding.pauseContainer.setClickable(false);
         } else {  // game was running, pause and open UI fragment
             fragmentTrans.replace(R.id.pauseContainer, pauseMenu);
-            pauseContainer.setVisibility(View.VISIBLE);
-            pauseContainer.setClickable(true);
+            mBinding.pauseContainer.setVisibility(View.VISIBLE);
+            mBinding.pauseContainer.setClickable(true);
         }
         gamePaused = !gamePaused;
         fragmentTrans.addToBackStack(null);  //TODO: needed?
         fragmentTrans.commit();
     }
 
-    //    private long startTime;
-    private long tickRemainder = 0, prevTickTime = 0;
+    private long tickStartTime = 0, tickElapsed = 0;
     private final ScheduledThreadPoolExecutor timerExecutor = new ScheduledThreadPoolExecutor(1);
     private ScheduledFuture<?> timerFuture;
 
     /**
      * A method to post a delayed runnable task every 1000 ms which updates the timer TextView by 1 second.
-     * ScheduledThreadPoolExecutor is used to schedule the runnables in an indefinite sequence which is cancelled
-     * upon game pause or finish. The first runnable starts after a delay value given by {@link #tickRemainder} which
-     * is 0 upon first starting the game, or the remaining time until the next tick, calculated after a game pause.
+     * ScheduledThreadPoolExecutor is used to schedule a runnable in an indefinite sequence which is cancelled upon
+     * game pause or finish. Game pauses mid tick are handled by a delay which is calculated using {@link #tickElapsed} which
+     * every call of {@link #pauseTimer()} which resets every tick completion.
      */
     private void startTimer() {
-        // save the system time for clock start to determine the delay for resumes
-//        startTime = SystemClock.uptimeMillis() + tickRemainder;
-        // start runnable with a delay of 1 second, with initial delay as remaining milliseconds to complete the tick before pause
-        timerFuture = timerExecutor.scheduleAtFixedRate(timerRunnable, tickRemainder, 1000, TimeUnit.MILLISECONDS);
+        // save the system time for clock start to determine the delay for repeated start/pauses
+        tickStartTime = SystemClock.uptimeMillis();
+        timerFuture = timerExecutor.scheduleAtFixedRate(timerRunnable, 1000 - tickElapsed, 1000, TimeUnit.MILLISECONDS);
     }
 
     /**
-     * Method to stop the game timer by cancelling the sequence of delayed runnable tasks created using a
-     * ScheduledThreadPoolExecutor which are responsible for incrementing the timer and updating the TextView.
-     * The time remaining until the next timer tick is calculated and stored as {@link #tickRemainder} to be used
-     * as the first delay for the timer if it is resumed, to keep the timer accurate. This is calculated from the system
-     * time at the previous tick stored in {@link #prevTickTime} each clock tick and the current system time upon call.
+     * Method to pause the game timer by cancelling the ScheduledThreadPoolExecutor which handles scheduling runnables
+     * responsible for incrementing the timer and updating the TextView. The time elapsed since the previous tick is
+     * calculated and stored as {@link #tickElapsed} which can be used to determine the appropriate delay for the timer
+     * once resumed, thus keeping the timer accurate. This is calculated from the system time at the previous tick
+     * stored in {@link #tickStartTime} each clock tick and the current system time upon call.
      */
     private void pauseTimer() {
-        // determine how close to next timer tick (next second) we are (in milliseconds)
-        long pauseTime = SystemClock.uptimeMillis();
-        long elapsedSincePrevTick = pauseTime - prevTickTime;
-        tickRemainder = 1000 - elapsedSincePrevTick;
-        // stop scheduled tasks
+        tickElapsed += SystemClock.uptimeMillis() - tickStartTime;
         if (timerFuture != null) {
             timerFuture.cancel(false);
         }
@@ -395,6 +413,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         wasGamePaused = gamePaused;
         if (!gamePaused) {
             pauseTimer();
+//            mTicker.pauseTimer();
             pauseFragment();
         }
     }
@@ -689,18 +708,13 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
      */
     private void solvedPuzzleUI(int[] gameData) {
         // inflates a layout into the pause fragment container and makes the game activity unclickable
-        final LinearLayout pauseContainer = findViewById(R.id.pauseContainer);
-        LayoutInflater inflater = getLayoutInflater();
-        inflater.inflate(R.layout.puzzle_solved_ui, pauseContainer, true);
-        pauseContainer.setClickable(true);
-        pauseContainer.setVisibility(View.VISIBLE);
-
-        // set variables for the UI widgets
-        TextView bestsView = findViewById(R.id.puzzleBests), puzzleDataView = findViewById(R.id.puzzleDataView);
-        Button retryButton = findViewById(R.id.retryButton), newButton = findViewById(R.id.newButton);
+        mBinding.pauseContainer.setClickable(true);
+        mBinding.pauseContainer.setVisibility(View.VISIBLE);
+        PuzzleSolvedUiBinding solvedUiBinding = PuzzleSolvedUiBinding.inflate(getLayoutInflater(),
+                mBinding.pauseContainer, true);
 
         //set onclick listeners for the UI buttons
-        retryButton.setOnClickListener(new View.OnClickListener() {
+        solvedUiBinding.retryButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // randomise grid or reset to starting state?
@@ -708,7 +722,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
                 finish();
             }
         });
-        newButton.setOnClickListener(new View.OnClickListener() {
+        solvedUiBinding.newButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
@@ -725,10 +739,10 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         }
         int puzzleSecs = gameData[0] % 60, puzzleMins = gameData[0] / 60;
         // emoticons: 😃 😁 😄 😎 😊 ☻ 👍 🖒 ☜ ☞
-        puzzleDataView.setText(String.format(Locale.getDefault(), "Puzzle Solved \uD83D\uDE0E \n" +
+        solvedUiBinding.puzzleDataView.setText(String.format(Locale.getDefault(), "Puzzle Solved \uD83D\uDE0E \n" +
                         " %02d m : %02d s\n %d moves",
                 puzzleMins, puzzleSecs, gameData[1]));
-        bestsView.setText(String.format(Locale.getDefault(), " Best Time: %s m : %s s \n Best Moves: %s",
+        solvedUiBinding.puzzleBests.setText(String.format(Locale.getDefault(), " Best Time: %s m : %s s \n Best Moves: %s",
                 bestMins, bestSecs, bestMoves));
 
         // display a message if user achieved a new best
@@ -759,6 +773,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         if (timerCount == 0) {
             gamePaused = false;
             startTimer();
+//            mTicker.startTimer();
         }
         // get the empty cell and the adjacent cell in a given group (row/col) then get the tags and image to be swapped
         for (int x = 0; x < groupMoves; x++) {  // incrementally swap cells from empty -> touched, in this order
@@ -779,11 +794,12 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         emptyCellIndex = gridIndex;
         // track amount of moves taken and update move counter to display this
         numMoves += groupMoves;
-        moveCounter.setText(String.valueOf(numMoves));
+        mBinding.moveCounter.setText(String.valueOf(numMoves));
         // check if grid is solved, if so then check if the game data was lower than the saved data (if any)
         int[] gameData = {timerCount, numMoves};
         if (gridSolved()) {
             pauseTimer();
+//            mTicker.pauseTimer();
             gamePaused = true;  // change this so onResume does not open pause fragment after a finished game
             gameSolved = true;
             //TODO: animation or wait between UI popup?
