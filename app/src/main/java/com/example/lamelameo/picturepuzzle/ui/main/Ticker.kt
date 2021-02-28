@@ -3,11 +3,19 @@ package com.example.lamelameo.picturepuzzle.ui.main
 import android.os.Handler
 import android.os.Message
 import android.os.SystemClock
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.OnLifecycleEvent
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
-class Ticker(handler: Handler) {
+class Ticker(private var handler: Handler, lifecycle: Lifecycle): LifecycleEventObserver {
+
+    init {
+        lifecycle.addObserver(this)
+    }
 
     private var tickStartTime: Long = SystemClock.uptimeMillis()
     private var tickElapsed: Long = 0
@@ -28,6 +36,7 @@ class Ticker(handler: Handler) {
      * game pause or finish. Game pauses mid tick are handled by a delay which is calculated using {@link #tickElapsed}
      * which every call of {@link #pauseTimer()} which resets every tick completion.
      */
+    @OnLifecycleEvent(Lifecycle.Event.ON_START)
     public fun startTimer() {
         tickStartTime = SystemClock.uptimeMillis()
         timerFuture = timerExecutor.scheduleAtFixedRate(timerRunnable, 1000 - tickElapsed, 1000, TimeUnit.MILLISECONDS)
@@ -40,6 +49,7 @@ class Ticker(handler: Handler) {
      * once resumed, thus keeping the timer accurate. This is calculated from the system time at the previous tick
      * stored in {@link #tickStartTime} each clock tick and the current system time upon call.
      */
+    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     public fun pauseTimer() {
         tickElapsed += SystemClock.uptimeMillis() - tickStartTime
         timerFuture.cancel(false)
@@ -50,6 +60,10 @@ class Ticker(handler: Handler) {
      */
     public fun setTickElapsed(num: Long) {
         tickElapsed = num
+    }
+
+    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+        TODO("Not yet implemented")
     }
 
 }

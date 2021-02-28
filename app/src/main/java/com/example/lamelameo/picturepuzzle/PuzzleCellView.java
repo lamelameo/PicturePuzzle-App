@@ -207,7 +207,7 @@ public class PuzzleCellView extends AppCompatImageView {
 
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
-            Log.i(TAG, "onFling:" + "diffX: " + diffX + "diffY: " + diffY + "velX: " + velocityX + "velY: " + velocityY);
+//            Log.i(TAG, "onFling:" + "diffX: " + diffX + "diffY: " + diffY + "velX: " + velocityX + "velY: " + velocityY);
             if (Math.abs(diffX) > Math.abs(diffY)) {  // potential horizontal swipe - check distance and velocity
                 if (Math.abs(diffX) > DISTANCE_THRESHOLD && Math.abs(velocityX) > VELOCITY_THRESHOLD) {
                     if (diffX > 0) {  // right swipe

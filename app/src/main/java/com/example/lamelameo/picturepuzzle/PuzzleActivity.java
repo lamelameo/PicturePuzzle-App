@@ -50,16 +50,14 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_puzzle);
+        mBinding = ActivityPuzzleBinding.inflate(getLayoutInflater());
+        setContentView(mBinding.getRoot());
         // first get relevant chosen settings from main activity
         numRows = getIntent().getIntExtra("numColumns", 4);
         puzzleNum = getIntent().getIntExtra("puzzleNum", 0);
         // get binding and setup grid
-        mBinding = ActivityPuzzleBinding.inflate(getLayoutInflater());
         //TODO separate grid into custom layout with methods to initialise it
-        final GridLayout puzzleGrid = mBinding.gridLayout;
-        initialiseGrid(puzzleGrid);
-
+        initialiseGrid(mBinding.gridLayout);
         // create cell bitmaps using the given image then create cell objects and set the images to relevant cell
         Bitmap bmp;
         String photoPath = getIntent().getStringExtra("photoPath");
@@ -67,10 +65,10 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
             bmp = BitmapFactory.decodeResource(getResources(),
                     getIntent().getIntExtra("drawableId", R.drawable.dfdfdefaultgrid));
         } else {  // given an image path
-            bmp = scalePhoto(puzzleGrid.getLayoutParams().width, photoPath);
+            bmp = scalePhoto(mBinding.gridLayout.getLayoutParams().width, photoPath);
         }
         createBitmapGrid(bmp, numRows, numRows);
-        createPuzzleCells(puzzleGrid);
+        createPuzzleCells(mBinding.gridLayout);
 
         // show the saved best time and move data for the given puzzle
         //TODO: move saved data to database
@@ -130,8 +128,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         // Hint button makes original selected image visible over top of the puzzle grid to show cells solved order
         //TODO: one handler for hint and ticker which receive messages when tick happens or hint is to be removed
         mBinding.hintImage.setImageBitmap(bmp);
-        mBinding.hintImage.setClickable(false);
-        mBinding.hintImage.setVisibility(View.INVISIBLE);
         // use handler to call a runnable to make the image invisible after 1 second (can change if needed)
         final Handler hintHandler = new Handler();
         final Runnable futureRunnable = new Runnable() {
@@ -265,8 +261,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
             // TODO: send settings to cell objects when created rather than doing manually?
             PuzzleCellView gridCell = new PuzzleCellView(this);
             int size = puzzleGrid.getLayoutParams().width / numRows;
-            gridCell.setLayoutParams(new ViewGroup.LayoutParams(size, size));
-            puzzleGrid.addView(gridCell, index);
+            puzzleGrid.addView(gridCell, index, new ViewGroup.LayoutParams(size, size));
             //add cell to appropriate row/col lists
             gridCells.add(gridCell);
             cellRows.get(index / numRows).add(gridCell);
@@ -312,6 +307,7 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
      */
     @Override
     public void onClickNewPuzzle() {
+        // TODO: have to close the pause fragment?
         finish();
     }
 
@@ -656,7 +652,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         bmOptions.inSampleSize = scaleFactor;
         return BitmapFactory.decodeFile(photopath, bmOptions);
     }
-
 
     /**
      * create the grid of smaller cell bitmaps using the chosen image and grid size and add them to the bitmaps list

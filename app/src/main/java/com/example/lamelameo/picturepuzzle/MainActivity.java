@@ -42,8 +42,7 @@ public class MainActivity extends AppCompatActivity {
 
         final int[] drawableInts = {
                 R.drawable.dfdfdefaultgrid, R.drawable.dfdfcarpet, R.drawable.dfdfcat, R.drawable.dfdfclock,
-                R.drawable.dfdfcrab, R.drawable.dfdfdarklights, R.drawable.dfdfnendou,
-                R.drawable.dfdfrazer, R.drawable.dfdfsaiki, R.drawable.dfdfmms
+                R.drawable.dfdfdarklights, R.drawable.dfdfnendou, R.drawable.dfdfrazer, R.drawable.dfdfsaiki
         };
 
         getSavedPhotos();

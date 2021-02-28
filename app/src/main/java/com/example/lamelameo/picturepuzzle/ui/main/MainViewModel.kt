@@ -2,64 +2,82 @@ package com.example.lamelameo.picturepuzzle.ui.main
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
+import android.os.Message
 import android.util.Log
-import java.util.*
-import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.ScheduledThreadPoolExecutor
-import java.util.concurrent.TimeUnit
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LiveData
+import com.example.lamelameo.picturepuzzle.PuzzleController
+import com.example.lamelameo.picturepuzzle.data.PuzzleData
+import com.example.lamelameo.picturepuzzle.data.PuzzleDataRepository
 
-class MainViewModel : ViewModel() {
+class MainViewModel(private val imagePath: String,
+                    private val gridSize: Int,
+                    private val mLifecycle: Lifecycle) : ViewModel() {
+
+    private val handler: Handler = Handler(Looper.getMainLooper())
+    private val mTicker: Ticker = Ticker(handler, mLifecycle)
+    private val controller: PuzzleController = PuzzleController(handler)
+    private val puzzleData: PuzzleData = PuzzleData(0,0,0,
+        controller.generatePuzzle(gridSize), gridSize - 1, isPaused = true, isSolved = false
+    )
+    private val mPuzzleData: MutableLiveData<PuzzleData> = MutableLiveData(puzzleData)
+
+//    private var mBestDataRepository: PuzzleDataRepository = PuzzleDataRepository.getInstance()
 
     // TODO: main activity should send a URI to chosen image, then we can access it from here
     // save relevant game data
-    private val _cellStates: MutableLiveData<List<Int>> = TODO()
-    private val _gameTime = MutableLiveData<Int>()
-    private val _tickRemainder = MutableLiveData<Int>()
-    private val _gameMoves = MutableLiveData<Int>()
-    private val _bestMoves = MutableLiveData<Int>()
-    private val _bestTime = MutableLiveData<Int>()
-    private val _imagePath = MutableLiveData<String>()
-    private val _isPaused = MutableLiveData<Boolean>()
-    private val _isSolved = MutableLiveData<Boolean>()
 
-    // all game data variables
-    var gameTime = 0
-    var gameMoves = 0
-    var bestTime = 0
-    var bestMoves = 0
-    private var imagePath: String
 
-    private val handler: Handler = Handler(Looper.getMainLooper())
-    private val mTicker: Ticker = Ticker(handler)
+    fun getPuzzleData(): LiveData<PuzzleData> {
+        return mPuzzleData
+    }
+
+    init {
+        // TODO: get best data from repository
+        handler.handleMessage(Message.obtain(handler))
+        // TODO: handle messages from handler 1=tick timer 2=increment moves
+    }
 
     override fun onCleared() {
         super.onCleared()
         Log.i("PuzzleViewModel", "puzzle view model destroyed")
     }
 
-    fun setMoves(num: Int) {
-        gameMoves = num
+    //TODO: how to update PuzzleData data
+
+
+    fun cellClicked(cellIndex: Int, emptyIndex: Int) {
+        controller.cellClick(cellIndex, emptyIndex)
     }
 
-    fun setImagePath(path: String) {
-        imagePath = path
+    fun cellSwiped(cellIndex: Int, emptyIndex: Int, direction: Int) {
+        controller.cellSwipe(cellIndex, emptyIndex, direction)
     }
+
+    // TODO: have ViewModel observe lifecycle instead of ticker?
+    fun pauseGame() {
+        mTicker.pauseTimer()
+        mPuzzleData.value!!.isPaused = true
+    }
+
+    fun startGame() {
+        mTicker.startTimer()
+        mPuzzleData.value!!.isPaused = false
+    }
+
+    fun setMoves(num: Int) {
+//        gameMoves = num
+    }
+
 
     fun getCellBitmap(id: Int) {
 
     }
 
     fun tick() {
-        gameTime += 1
-        // TODO call UI fragment to udpdate Timer View
+//        gameTime += 1
     }
 
     fun startTimer() {
@@ -68,6 +86,14 @@ class MainViewModel : ViewModel() {
 
     fun pauseTimer() {
         mTicker.pauseTimer()
+    }
+
+    fun newBest(time: Int, moves: Int) {
+
+    }
+
+    fun newImage() {
+        // TODO: make new best data entry in database
     }
 
 

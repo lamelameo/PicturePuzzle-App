@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/navigation"
+    app:startDestination="@id/mainActivity">
+
+    <activity
+        android:id="@+id/mainActivity"
+        android:name="com.example.lamelameo.picturepuzzle.MainActivity"
+        android:label="activity_main"
+        tools:layout="@layout/activity_main" >
+        <action
+            android:id="@+id/action_mainActivity_to_photoCropping"
+            app:destination="@id/photoCropping" />
+        <action
+            android:id="@+id/action_mainActivity_to_puzzleActivity"
+            app:destination="@id/puzzleActivity" />
+    </activity>
+    <activity
+        android:id="@+id/photoCropping"
+        android:name="com.example.lamelameo.picturepuzzle.PhotoCropping"
+        android:label="activity_photo_cropping"
+        tools:layout="@layout/activity_photo_cropping" >
+        <action
+            android:id="@+id/action_photoCropping_to_puzzleActivity"
+            app:destination="@id/puzzleActivity" />
+    </activity>
+    <activity
+        android:id="@+id/puzzleActivity"
+        android:name="com.example.lamelameo.picturepuzzle.PuzzleActivity"
+        android:label="activity_puzzle"
+        tools:layout="@layout/activity_puzzle" >
+        <action
+            android:id="@+id/action_puzzleActivity_to_pauseMenu"
+            app:destination="@id/pauseMenu" />
+    </activity>
+    <fragment
+        android:id="@+id/pauseMenu"
+        android:name="com.example.lamelameo.picturepuzzle.PauseMenu"
+        android:label="fragment_pause_menu"
+        tools:layout="@layout/fragment_pause_menu" >
+        <action
+            android:id="@+id/action_pauseMenu_to_mainActivity"
+            app:destination="@id/mainActivity" />
+    </fragment>
+</navigation>

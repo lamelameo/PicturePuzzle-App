@@ -5,7 +5,7 @@
     android:id="@+id/puzzle_activity2"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.main.PuzzleActivity2Fragment">
+    tools:context=".ui.main.PuzzleFragment">
 
     <TextView
         android:id="@+id/message"
