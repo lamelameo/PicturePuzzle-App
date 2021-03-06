@@ -2,6 +2,7 @@ package com.example.lamelameo.picturepuzzle
 
 import android.os.Handler
 import android.os.Looper
+import com.example.lamelameo.picturepuzzle.ui.main.PuzzleController
 import org.junit.Assert
 import org.junit.Test
 

@@ -1,15 +1,15 @@
-package com.example.lamelameo.picturepuzzle
+package com.example.lamelameo.picturepuzzle.ui.main
 
 import android.os.Handler
 import android.os.Message
+import com.example.lamelameo.picturepuzzle.data.PuzzleData
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.abs
 
-class PuzzleController(private var handler: Handler) {
+class PuzzleController(private var handler: Handler, private var puzzleData: PuzzleData) {
 
     //TODO: generates, stores and controls manipulation of the puzzle data
-    var puzzleState: ArrayList<Int> = generatePuzzle(16)
     private val numCols = 4
     private var numCorrect = 0
     private var numMoves = 0
@@ -76,11 +76,14 @@ class PuzzleController(private var handler: Handler) {
      *
      */
     private fun swapCells(cell1: Int, cell2: Int) {
-        val swap = puzzleState[cell1]
-        puzzleState[cell1] = puzzleState[cell2]
-        puzzleState[cell2] = swap
+        val swap = puzzleData.puzzleState[cell1]
+        puzzleData.puzzleState[cell1] = puzzleData.puzzleState[cell2]
+        puzzleData.puzzleState[cell2] = swap
         numMoves += 1
         handler.sendMessage(Message.obtain(handler, 2))
+        if (gridSolved(puzzleData.puzzleState)) {
+            handler.sendMessage(Message.obtain(handler, 3))
+        }
     }
 
     /**
@@ -89,17 +92,13 @@ class PuzzleController(private var handler: Handler) {
      *
      * @return a boolean which indicates whether the grid is solved or not
      */
-    fun gridSolved(list: ArrayList<Int>): Boolean {
+    private fun gridSolved(list: ArrayList<Int>): Boolean {
         list.forEachIndexed { i, item ->
             if (i != item) {
                 return false
             }
         }
         return true
-    }
-
-    fun moveCells() {
-
     }
 
     /**
@@ -120,7 +119,12 @@ class PuzzleController(private var handler: Handler) {
 
     private val maps: List<List<Int>> = listOf(listOf(0,1,2,3,4,5,6,7), listOf(0,1,3,2,4,7,6,5),
         listOf(2,3,0,1,6,5,4,7), listOf(2,3,1,0,6,7,4,5))
-    fun cellSwipe(cellIndex: Int, emptyIndex: Int, direction: Int): Int {
+
+    /**
+     *
+     */
+    fun cellSwipe(cellIndex: Int, emptyIndex: Int, direction: Int): List<List<Int>> {
+        val updates: MutableList<List<Int>> = mutableListOf()
         val cellRow: Int = cellIndex / numCols; val cellCol: Int = cellIndex % numCols
         val emptyCellRow: Int = emptyIndex / numCols; val emptyCellCol: Int = emptyIndex % numCols
         val colDiff: Int = emptyCellCol - cellCol; val rowDiff: Int = emptyCellRow - cellRow
@@ -129,10 +133,10 @@ class PuzzleController(private var handler: Handler) {
         if (vars[0] == vars[1] && vars[2] > vars[3]) {
             for (i in 0 until abs(vars[4])) {
                 swapCells(emptyIndex + i * vars[5], emptyIndex + (i + 1) * vars[5])
+                updates.add(listOf(emptyIndex + i * vars[5], emptyIndex + (i + 1) * vars[5]))
             }
-            return abs(vars[4])
         }
-        return 0
+        return updates
     }
 
     fun cellSwipeSimple(cellIndex: Int, emptyIndex: Int, direction: Int): Int {
@@ -143,25 +147,25 @@ class PuzzleController(private var handler: Handler) {
         when (direction) {
             1 -> if (emptyCellRow == cellRow && emptyCellCol > cellCol) {
                 for (i in 0 until colDiff) {
-                    swapCells(emptyIndex  , emptyIndex  )
+                    swapCells(emptyIndex, emptyIndex)
                 }
                 return abs(colDiff)
             }
             2 -> if (emptyCellRow == cellRow && emptyCellCol < cellCol) {
                 for (i in 0 until colDiff) {
-                    swapCells(emptyIndex  , emptyIndex  )
+                    swapCells(emptyIndex, emptyIndex)
                 }
                 return abs(colDiff)
             }
             3 -> if (emptyCellCol == cellCol && emptyCellRow > cellRow) {
                 for (i in 0 until rowDiff) {
-                    swapCells(emptyIndex , emptyIndex )
+                    swapCells(emptyIndex,emptyIndex)
                 }
                 return abs(rowDiff)
             }
             4 -> if (emptyCellCol == cellCol && emptyCellRow < cellRow) {
                 for (i in 0 until rowDiff) {
-                    swapCells(emptyIndex , emptyIndex )
+                    swapCells(emptyIndex,emptyIndex)
                 }
                 return abs(rowDiff)
             }

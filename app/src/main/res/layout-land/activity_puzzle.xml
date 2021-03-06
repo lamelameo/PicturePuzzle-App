@@ -42,7 +42,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/bestTimeView"
+        android:id="@+id/bestsView"
         android:layout_width="200dp"
         android:layout_height="50dp"
         android:layout_marginEnd="8dp"
@@ -70,7 +70,7 @@
         app:layout_constraintEnd_toStartOf="@+id/hintImage"
         app:layout_constraintHorizontal_bias="0.38"
         app:layout_constraintStart_toEndOf="@+id/hintButton"
-        app:layout_constraintTop_toBottomOf="@+id/bestTimeView"
+        app:layout_constraintTop_toBottomOf="@+id/bestsView"
         app:layout_constraintVertical_bias="0.823"
         app:srcCompat="@android:drawable/ic_media_pause" />
 
@@ -91,6 +91,7 @@
         android:id="@+id/hintImage"
         android:layout_width="300dp"
         android:layout_height="300dp"
+        android:contentDescription="@string/app_name"
         app:layout_constraintBottom_toBottomOf="@+id/gridLayout"
         app:layout_constraintEnd_toEndOf="@+id/gridLayout"
         app:layout_constraintHorizontal_bias="0.0"
@@ -107,13 +108,13 @@
         android:layout_marginStart="32dp"
         android:background="@android:color/darker_gray"
         android:gravity="center"
-        android:text="@string/hint"
+        android:text="@string/show_hint"
         android:textColor="@android:color/background_dark"
         android:textSize="18sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/bestTimeView"
+        app:layout_constraintTop_toBottomOf="@+id/bestsView"
         app:layout_constraintVertical_bias="0.933" />
 
     <LinearLayout

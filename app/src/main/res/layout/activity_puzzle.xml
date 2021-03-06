@@ -18,7 +18,7 @@
         app:layout_constraintBottom_toTopOf="@+id/hintButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/bestTimeView"
+        app:layout_constraintTop_toBottomOf="@+id/bestsView"
         app:layout_constraintVertical_bias="0.567">
 
     </androidx.gridlayout.widget.GridLayout>
@@ -39,7 +39,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/bestTimeView"
+        android:id="@+id/bestsView"
         android:layout_width="210dp"
         android:layout_height="50dp"
         android:layout_marginEnd="28dp"
@@ -59,7 +59,7 @@
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:contentDescription="@string/pause"
-        app:layout_constraintEnd_toStartOf="@+id/bestTimeView"
+        app:layout_constraintEnd_toStartOf="@+id/bestsView"
         app:layout_constraintHorizontal_bias="0.536"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/moveCounter"
@@ -106,7 +106,7 @@
         android:layout_marginStart="8dp"
         android:background="@android:color/darker_gray"
         android:gravity="center"
-        android:text="@string/hint"
+        android:text="@string/show_hint"
         android:textColor="@android:color/background_dark"
         android:textSize="18sp"
         android:textStyle="bold"

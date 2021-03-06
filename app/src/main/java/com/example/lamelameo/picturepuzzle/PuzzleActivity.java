@@ -36,7 +36,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     private Runnable timerRunnable;
     private PauseMenu pauseMenu;
     private int[] bestData;
-    private Ticker mTicker;
     private ActivityPuzzleBinding mBinding;
 
     /**
@@ -75,20 +74,12 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         bestData = puzzleBestData();
         if (bestData[0] != -1) {
             int secs = bestData[0] % 60, mins = bestData[0] / 60, bestMoves = bestData[1];
-            mBinding.bestTimeView.setText(String.format(Locale.getDefault(), "Best Time: %02d:%02d\nBest Moves: %d",
+            mBinding.bestsView.setText(String.format(Locale.getDefault(), "Best Time: %02d:%02d\nBest Moves: %d",
                     mins, secs, bestMoves));
         }
 
         // initialise game timer and its runnable
         timerCount = 0;
-//        mTicker = new Ticker(new Handler(Looper.getMainLooper()) {
-//            @Override
-//            public void handleMessage(Message msg) {
-//                if(msg.what == 1) {
-//                    updateTimer(mBinding.gameTimer);
-//                }
-//            }
-//        });
 
         // Create runnable task (calls code in new thread) which increments a counter used as the timers text
         timerRunnable = new Runnable() {
@@ -114,7 +105,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
                 //TODO: you cannot pause between 0-1s
                 if (timerCount != 0) {
                     pauseTimer();
-//                    mTicker.pauseTimer();
                     pauseFragment();
                 } else {
                     String toastText = "You have not started the puzzle!";
@@ -206,17 +196,14 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     private void handlePause() {
         // onPause called before onDestroy, so fragment will be present, must handle this depending if paused or not
         // replace pause UI fragment with newly created instance or it will cause issues...
-        FragmentManager manager = getSupportFragmentManager();
-        FragmentTransaction fragTrans = manager.beginTransaction();
+        FragmentTransaction fragTrans = getSupportFragmentManager().beginTransaction();
         fragTrans.replace(R.id.pauseContainer, pauseMenu);
         // If pause UI was active, keep new instance and make it visible, else remove it and hide container
         // -- CAN change to hide/ show fragment? OR USE OLD FRAGMENT??
-        if (!gamePaused || timerCount == 0 || gameSolved) {  // game had no pause UI active when rotated
+        if (!gamePaused || (timerCount == 0 && tickElapsed == 0) || gameSolved) {  // game had no pause UI active when rotated
             fragTrans.remove(pauseMenu);
-            if (timerCount != 0 && !gameSolved) {  // game was running must resume timer
+            if ((timerCount + tickElapsed != 0) && !gameSolved) {  // game was running must resume timer
                 startTimer();
-//                mTicker.setTickElapsed(tickElapsed);
-//                mTicker.startTimer();
             }
             if (gameSolved) {  // must inflate solved UI if solved, set appropriate text
                 solvedPuzzleUI(bestData);
@@ -317,9 +304,8 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
     @Override
     public void onClickResume() {
         pauseFragment();
-        if (timerCount != 0) {  // resume timer only if it has been started already
+        if (timerCount + tickElapsed != 0) {  // resume timer only if it has been started already
             startTimer();
-//            mTicker.startTimer();
         }
     }
 
@@ -333,10 +319,9 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         super.onBackPressed();
         // BUG: back pressed when solved and rotated crashes app - pause rotate twice, press resume, then solved ->
         //  gives fragment + solved UI, then if rotate, fragment removed, then press back = BUG
-        if (gamePaused && !gameSolved && timerCount != 0) {  // pause fragment is open
+        if (gamePaused && !gameSolved && (timerCount + tickElapsed != 0)) {  // pause fragment is open
             pauseFragment();
             startTimer();
-//            mTicker.startTimer();
         } else {  // fragment is not open - go back to main activity
             returnMain = true;
             finish();
@@ -409,7 +394,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         wasGamePaused = gamePaused;
         if (!gamePaused) {
             pauseTimer();
-//            mTicker.pauseTimer();
             pauseFragment();
         }
     }
@@ -768,7 +752,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         if (timerCount == 0) {
             gamePaused = false;
             startTimer();
-//            mTicker.startTimer();
         }
         // get the empty cell and the adjacent cell in a given group (row/col) then get the tags and image to be swapped
         for (int x = 0; x < groupMoves; x++) {  // incrementally swap cells from empty -> touched, in this order
@@ -794,7 +777,6 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         int[] gameData = {timerCount, numMoves};
         if (gridSolved()) {
             pauseTimer();
-//            mTicker.pauseTimer();
             gamePaused = true;  // change this so onResume does not open pause fragment after a finished game
             gameSolved = true;
             //TODO: animation or wait between UI popup?

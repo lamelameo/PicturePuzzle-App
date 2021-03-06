@@ -11,16 +11,13 @@ import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
-class Ticker(private var handler: Handler, lifecycle: Lifecycle): LifecycleEventObserver {
-
-    init {
-        lifecycle.addObserver(this)
-    }
+class Ticker(private var handler: Handler) {
 
     private var tickStartTime: Long = SystemClock.uptimeMillis()
     private var tickElapsed: Long = 0
     private val timerExecutor = ScheduledThreadPoolExecutor(1)
     private lateinit var timerFuture: ScheduledFuture<*>
+    private var isRunning: Boolean = false
 
     // Create runnable task (calls code in new thread) which increments a counter used as the timers text
     private var timerRunnable =
@@ -36,7 +33,6 @@ class Ticker(private var handler: Handler, lifecycle: Lifecycle): LifecycleEvent
      * game pause or finish. Game pauses mid tick are handled by a delay which is calculated using {@link #tickElapsed}
      * which every call of {@link #pauseTimer()} which resets every tick completion.
      */
-    @OnLifecycleEvent(Lifecycle.Event.ON_START)
     public fun startTimer() {
         tickStartTime = SystemClock.uptimeMillis()
         timerFuture = timerExecutor.scheduleAtFixedRate(timerRunnable, 1000 - tickElapsed, 1000, TimeUnit.MILLISECONDS)
@@ -49,7 +45,6 @@ class Ticker(private var handler: Handler, lifecycle: Lifecycle): LifecycleEvent
      * once resumed, thus keeping the timer accurate. This is calculated from the system time at the previous tick
      * stored in {@link #tickStartTime} each clock tick and the current system time upon call.
      */
-    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     public fun pauseTimer() {
         tickElapsed += SystemClock.uptimeMillis() - tickStartTime
         timerFuture.cancel(false)
@@ -62,8 +57,8 @@ class Ticker(private var handler: Handler, lifecycle: Lifecycle): LifecycleEvent
         tickElapsed = num
     }
 
-    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-        TODO("Not yet implemented")
+    public fun isRunning(): Boolean {
+        return isRunning
     }
 
 }

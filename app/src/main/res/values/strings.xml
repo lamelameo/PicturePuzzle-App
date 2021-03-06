@@ -27,7 +27,8 @@
     <!-- Puzzle Activity -->
     <string name="title_activity_puzzle">PuzzleActivity</string>
     <string name="timer_default">00:00</string>
-    <string name="hint">Show Original Image</string>
+    <string name="show_hint">Show Answer</string>
+    <string name="hide_hint">Hide</string>
     <!-- Paused UI -->
     <string name="resize">Resize</string>
     <!-- Solved UI -->
