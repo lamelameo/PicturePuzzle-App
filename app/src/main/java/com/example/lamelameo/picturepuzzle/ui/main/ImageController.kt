@@ -1,26 +1,29 @@
 package com.example.lamelameo.picturepuzzle.ui.main
 
-import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import com.example.lamelameo.picturepuzzle.R
+import android.util.Log
 
-class ImageController(imagePath: String?, gridSize: Int, numRows: Int) {
+class ImageController(imagePath: String?, imageBitmap: Bitmap?, gridSize: Int, numRows: Int) {
 
-    private val mImage: Bitmap
-    private val mCellImages: List<Bitmap>
+    private val mImage: Bitmap?
+    private var mCellImages: List<Bitmap> = listOf()
+    private val TAG: String = "ImageController"
 
     init {
         // create cell bitmaps using the given image, then create cell objects and set the images to relevant cell
-        mImage = if (imagePath == null) {  // default image
-            BitmapFactory.decodeResource(Resources.getSystem(), R.drawable.dfdfdefaultgrid)
-        } else {  // given an image path
-            scalePhoto(gridSize, imagePath)
+        mImage = when {
+            imagePath != null -> scalePhoto(gridSize, imagePath)
+            imageBitmap != null -> imageBitmap
+            else -> null
         }
-        mCellImages = createCellBitmaps(mImage, numRows)
+
+        if (mImage != null) {
+            mCellImages = createCellBitmaps(mImage, numRows)
+        }
     }
 
-    fun getImageBitmap() : Bitmap {
+    fun getImageBitmap() : Bitmap? {
         return mImage
     }
 
@@ -57,15 +60,15 @@ class ImageController(imagePath: String?, gridSize: Int, numRows: Int) {
     private fun createCellBitmaps(bmp: Bitmap, rows: Int): List<Bitmap> {
         // determine cell size in pixels from the image size and set amount of rows/cols
         val bmps = mutableListOf<Bitmap>()
-        val cellSize = bmp.width / rows
+        val cellSize: Int = bmp.width / rows
         // for each row loop 4 times creating a new cropped image from original bitmap and add to adapter dataset
         for (x in 0 until rows) {
             // for each row, increment y value to start the bitmap at
-            val ypos = (x * cellSize).toFloat()
+            val ypos: Int = x * cellSize
             for (y in 0 until rows) {
                 // loop through 4 positions in row incrementing the x value to start bitmap at
-                val xpos = (y * cellSize).toFloat()
-                bmps[y * rows + x] = Bitmap.createBitmap(bmp, xpos.toInt(), ypos.toInt(), cellSize, cellSize)
+                val xpos: Int = y * cellSize
+                bmps.add(Bitmap.createBitmap(bmp, xpos, ypos, cellSize, cellSize))
             }
         }
         return bmps

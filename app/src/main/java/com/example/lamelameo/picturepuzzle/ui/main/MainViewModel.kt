@@ -12,7 +12,7 @@ import com.example.lamelameo.picturepuzzle.data.PuzzleData
 import com.example.lamelameo.picturepuzzle.data.PuzzleDataRepository
 
 class MainViewModel(private val imagePath: String?,
-                    private val imageDrawable: Int,
+                    private val imageBitmap: Bitmap?,
                     private val numRows: Int,
                     private val gridViewSize: Int) : ViewModel() {
 
@@ -21,11 +21,12 @@ class MainViewModel(private val imagePath: String?,
     private val controller: PuzzleController
     private val imageController: ImageController
     private val puzzleData: PuzzleData
-    private val mPuzzleData: MutableLiveData<PuzzleData>
+//    private val mPuzzleData: MutableLiveData<PuzzleData>
     private val mMoves: MutableLiveData<Int>
     private val mTime: MutableLiveData<Int>
     private val mSolved: Boolean
     private val isSolved: MutableLiveData<Boolean>
+    private val gameState: MutableLiveData<Int>
     private val TAG: String = "MainViewModel"
     private val bestData: BestData
     //    private var mBestDataRepository: PuzzleDataRepository = PuzzleDataRepository.getInstance()
@@ -45,14 +46,15 @@ class MainViewModel(private val imagePath: String?,
         val gridSize = numRows * numRows
         // TODO: if we saved instance, then we can get saved data and give to puzzle data on creation
         puzzleData = PuzzleData(puzzleState = ArrayList(), emptyCell = gridSize - 1)
-        controller = PuzzleController(handler, puzzleData)
+        controller = PuzzleController(handler, puzzleData, numRows)
         puzzleData.puzzleState = controller.generatePuzzle(gridSize)
-        mPuzzleData = MutableLiveData(puzzleData)
+//        mPuzzleData = MutableLiveData(puzzleData)
         mMoves = MutableLiveData(puzzleData.numMoves)
         mTime = MutableLiveData(puzzleData.gameTime)
         mSolved = false  // set based on puzzleData.gameState?
         isSolved = MutableLiveData(mSolved)
-        imageController = ImageController(imagePath, gridViewSize, numRows)
+        gameState = MutableLiveData(puzzleData.gameState)
+        imageController = ImageController(imagePath, imageBitmap, gridViewSize, numRows)
         // TODO: get best data from repository
         bestData = BestData("",0,0)
     }
@@ -62,9 +64,9 @@ class MainViewModel(private val imagePath: String?,
         Log.i("PuzzleViewModel", "puzzle view model destroyed")
     }
 
-    fun getPuzzleData(): LiveData<PuzzleData> {
-        return mPuzzleData
-    }
+//    fun getPuzzleData(): LiveData<PuzzleData> {
+//        return mPuzzleData
+//    }
 
     fun getMovesLiveData(): LiveData<Int> {
         return mMoves
@@ -78,17 +80,24 @@ class MainViewModel(private val imagePath: String?,
         return isSolved
     }
 
+    fun getGameStateLiveData(): LiveData<Int> {
+        return gameState
+    }
+
     fun getPuzzleBest(name: String): LiveData<List<BestData>> {
         // TODO: get data from repository
         val bestRepo = PuzzleDataRepository.getInstance(BestDataDao())
         return bestRepo.getBests()
     }
 
-    fun getPuzzleImage(num: Int): Bitmap {
+    /**
+     * Given a cells image, ret
+     */
+    fun getPuzzleImage(num: Int): Bitmap? {
         return if (num == -1) {
             imageController.getImageBitmap()
         } else {
-            imageController.getCellBitmap(num)
+            imageController.getCellBitmap(puzzleData.puzzleState[num])
         }
     }
 
@@ -97,33 +106,52 @@ class MainViewModel(private val imagePath: String?,
      * which represents the image tags for the clicked cell and empty cell to be changed to (if valid click)
      */
     fun cellClicked(cellIndex: Int): List<Int> {
-        controller.cellClick(cellIndex, puzzleData.emptyCell)
-        return listOf()
+        val outcome = controller.cellClick(cellIndex, puzzleData.emptyCell)
+        if (puzzleData.gameState == 0 && outcome.isNotEmpty()) {
+            mTicker.startTimer()
+            puzzleData.gameState = 1
+        }
+        return outcome
     }
 
     /**
      * Given the grid index of a cell that has been swiped, determine if moves should be made
      */
     fun cellSwiped(cellIndex: Int, direction: Int): List<List<Int>> {
-        controller.cellSwipe(cellIndex, puzzleData.emptyCell, direction)
-        return listOf()
+        val outcome = controller.cellSwipe(cellIndex, puzzleData.emptyCell, direction)
+        if (puzzleData.gameState == 0 && outcome.isNotEmpty()) {
+            mTicker.startTimer()
+            puzzleData.gameState = 1
+        }
+        return outcome
     }
 
     fun emptyCellIndex(): Int {
         return puzzleData.emptyCell
     }
 
+//    private fun PuzzleData.set(data: Int) = when(data) {
+//        1 ->
+//    }
+
     // TODO: have ViewModel observe lifecycle instead of ticker?
-    fun pauseGame() {
-        if (puzzleData.gameState == 1) {
+    fun pauseGame(): Boolean {
+        return if (puzzleData.gameState == 1) {
             mTicker.pauseTimer()
-            puzzleData.gameState = 2
+//            puzzleData.gameState = 2
+            gameState.value = 2
+            Log.i(TAG, "livedata: ${gameState.value}, puzzledata: ${puzzleData.gameState}")
+            true
         } else {
-            return //TODO: return boolean for if we paused?
+            false
         }
     }
 
-    fun startGame(): Int {
+    fun resumeGame() {
+        mTicker.startTimer()
+    }
+
+    fun gameState(): Int {
         return when(puzzleData.gameState) {
             0 -> 0  // not started
             1 -> { mTicker.startTimer(); 1 }  // running

@@ -13,8 +13,8 @@
                       <LayoutPositions>
                         <option name="myPosition">
                           <Point>
-                            <option name="x" value="12" />
-                            <option name="y" value="63" />
+                            <option name="x" value="-78" />
+                            <option name="y" value="25" />
                           </Point>
                         </option>
                         <option name="myPositions">
@@ -24,7 +24,7 @@
                                 <LayoutPositions />
                               </value>
                             </entry>
-                            <entry key="action_mainActivity_to_puzzleActivity">
+                            <entry key="action_mainActivity_to_puzzleActivity2">
                               <value>
                                 <LayoutPositions />
                               </value>
@@ -34,18 +34,18 @@
                       </LayoutPositions>
                     </value>
                   </entry>
-                  <entry key="pauseMenu">
+                  <entry key="pauseFragment">
                     <value>
                       <LayoutPositions>
                         <option name="myPosition">
                           <Point>
-                            <option name="x" value="444" />
-                            <option name="y" value="232" />
+                            <option name="x" value="431" />
+                            <option name="y" value="196" />
                           </Point>
                         </option>
                         <option name="myPositions">
                           <map>
-                            <entry key="action_pauseMenu_to_mainActivity">
+                            <entry key="action_pauseFragment_to_mainActivity">
                               <value>
                                 <LayoutPositions />
                               </value>
@@ -60,13 +60,13 @@
                       <LayoutPositions>
                         <option name="myPosition">
                           <Point>
-                            <option name="x" value="254" />
-                            <option name="y" value="-122" />
+                            <option name="x" value="240" />
+                            <option name="y" value="-129" />
                           </Point>
                         </option>
                         <option name="myPositions">
                           <map>
-                            <entry key="action_photoCropping_to_puzzleActivity">
+                            <entry key="action_photoCropping_to_puzzleActivity2">
                               <value>
                                 <LayoutPositions />
                               </value>
@@ -76,18 +76,18 @@
                       </LayoutPositions>
                     </value>
                   </entry>
-                  <entry key="puzzleActivity">
+                  <entry key="puzzleActivity2">
                     <value>
                       <LayoutPositions>
                         <option name="myPosition">
                           <Point>
-                            <option name="x" value="257" />
-                            <option name="y" value="229" />
+                            <option name="x" value="243" />
+                            <option name="y" value="191" />
                           </Point>
                         </option>
                         <option name="myPositions">
                           <map>
-                            <entry key="action_puzzleActivity_to_pauseMenu">
+                            <entry key="action_puzzleActivity2_to_pauseFragment">
                               <value>
                                 <LayoutPositions />
                               </value>

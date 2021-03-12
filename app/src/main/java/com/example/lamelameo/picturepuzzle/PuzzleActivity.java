@@ -650,11 +650,11 @@ public class PuzzleActivity extends AppCompatActivity implements PauseMenu.OnFra
         // for each row loop 4 times creating a new cropped image from original bitmap and add to adapter dataset
         for (int x = 0; x < columns; x++) {
             // for each row, increment y value to start the bitmap at
-            float ypos = x * cellSize;
+            int ypos = x * cellSize;
             for (int y = 0; y < rows; y++) {
                 // loop through 4 positions in row incrementing the x value to start bitmap at
-                float xpos = y * cellSize;
-                Bitmap gridImage = Bitmap.createBitmap(bmp, (int) xpos, (int) ypos, cellSize, cellSize);
+                int xpos = y * cellSize;
+                Bitmap gridImage = Bitmap.createBitmap(bmp, xpos, ypos, cellSize, cellSize);
                 // converted to drawable for use of setImageDrawable to easily swap cell images
                 bitmaps.add(new BitmapDrawable(getResources(), gridImage));
             }

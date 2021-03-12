@@ -14,8 +14,8 @@
             android:id="@+id/action_mainActivity_to_photoCropping"
             app:destination="@id/photoCropping" />
         <action
-            android:id="@+id/action_mainActivity_to_puzzleActivity"
-            app:destination="@id/puzzleActivity" />
+            android:id="@+id/action_mainActivity_to_puzzleActivity2"
+            app:destination="@id/puzzleActivity2" />
     </activity>
     <activity
         android:id="@+id/photoCropping"
@@ -23,25 +23,25 @@
         android:label="activity_photo_cropping"
         tools:layout="@layout/activity_photo_cropping" >
         <action
-            android:id="@+id/action_photoCropping_to_puzzleActivity"
-            app:destination="@id/puzzleActivity" />
-    </activity>
-    <activity
-        android:id="@+id/puzzleActivity"
-        android:name="com.example.lamelameo.picturepuzzle.PuzzleActivity"
-        android:label="activity_puzzle"
-        tools:layout="@layout/activity_puzzle" >
-        <action
-            android:id="@+id/action_puzzleActivity_to_pauseMenu"
-            app:destination="@id/pauseMenu" />
+            android:id="@+id/action_photoCropping_to_puzzleActivity2"
+            app:destination="@id/puzzleActivity2" />
     </activity>
     <fragment
-        android:id="@+id/pauseMenu"
-        android:name="com.example.lamelameo.picturepuzzle.PauseMenu"
-        android:label="fragment_pause_menu"
-        tools:layout="@layout/fragment_pause_menu" >
+        android:id="@+id/pauseFragment"
+        android:name="com.example.lamelameo.picturepuzzle.ui.main.PauseFragment"
+        android:label="fragment_pause"
+        tools:layout="@layout/fragment_pause" >
         <action
-            android:id="@+id/action_pauseMenu_to_mainActivity"
+            android:id="@+id/action_pauseFragment_to_mainActivity"
             app:destination="@id/mainActivity" />
     </fragment>
+    <activity
+        android:id="@+id/puzzleActivity2"
+        android:name="com.example.lamelameo.picturepuzzle.ui.main.PuzzleActivity2"
+        android:label="puzzle2_activity"
+        tools:layout="@layout/puzzle2_activity" >
+        <action
+            android:id="@+id/action_puzzleActivity2_to_pauseFragment"
+            app:destination="@id/pauseFragment" />
+    </activity>
 </navigation>

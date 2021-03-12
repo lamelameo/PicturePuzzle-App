@@ -3,6 +3,7 @@ package com.example.lamelameo.picturepuzzle.ui.main
 import android.os.Handler
 import android.os.Message
 import android.os.SystemClock
+import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
@@ -34,6 +35,7 @@ class Ticker(private var handler: Handler) {
      * which every call of {@link #pauseTimer()} which resets every tick completion.
      */
     public fun startTimer() {
+        Log.i("Ticker", "start")
         tickStartTime = SystemClock.uptimeMillis()
         timerFuture = timerExecutor.scheduleAtFixedRate(timerRunnable, 1000 - tickElapsed, 1000, TimeUnit.MILLISECONDS)
     }
@@ -46,6 +48,7 @@ class Ticker(private var handler: Handler) {
      * stored in {@link #tickStartTime} each clock tick and the current system time upon call.
      */
     public fun pauseTimer() {
+        Log.i("ticker", "pause")
         tickElapsed += SystemClock.uptimeMillis() - tickStartTime
         timerFuture.cancel(false)
     }

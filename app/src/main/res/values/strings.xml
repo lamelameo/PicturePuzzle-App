@@ -31,6 +31,7 @@
     <string name="hide_hint">Hide</string>
     <!-- Paused UI -->
     <string name="resize">Resize</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
     <!-- Solved UI -->
     <string name="puzzle_solved">Puzzle Solved ☜</string>
     <string name="highscore">Best Time: \nBest Moves: </string>
@@ -43,5 +44,6 @@
     <string name="test">Move image to fit within square puzzle grid or use arrows.
                         Use buttons to zoom in or out.</string>
     <string name="image_hint">Image Hint</string>
+
 
 </resources>

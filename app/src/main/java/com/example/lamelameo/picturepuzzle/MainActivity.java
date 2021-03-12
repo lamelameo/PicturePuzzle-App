@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 import android.widget.*;
+import com.example.lamelameo.picturepuzzle.ui.main.PuzzleActivity2;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -109,9 +110,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        final Intent gameIntent = new Intent(this, PuzzleActivity.class);
+        final Intent gameIntent = new Intent(this, PuzzleActivity2.class);
         mGridRows = 4; // default amount of grid rows is 4
-        final int[] defaultPuzzles = {R.drawable.grid9, R.drawable.grid15, R.drawable.grid25, R.drawable.grid36};
+        final int[] defaultPuzzles = { R.drawable.grid9, R.drawable.grid15, R.drawable.grid25, R.drawable.grid36 };
 
         // on click listener for the load button creates an intent to start the game activity and sets extras to give
         // that activity the information of grid size and image to use

@@ -7,10 +7,10 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.abs
 
-class PuzzleController(private var handler: Handler, private var puzzleData: PuzzleData) {
+class PuzzleController(private var handler: Handler, private var puzzleData: PuzzleData, private val numCols: Int) {
 
     //TODO: generates, stores and controls manipulation of the puzzle data
-    private val numCols = 4
+    private val numCells = numCols * numCols
     private var numCorrect = 0
     private var numMoves = 0
 
@@ -51,6 +51,7 @@ class PuzzleController(private var handler: Handler, private var puzzleData: Puz
             list[0] = list[1]
             list[1] = swap
         }
+        list.forEachIndexed { index, cellVal -> if (index == cellVal) { numCorrect.inc() } }
         return list
     }
 
@@ -61,10 +62,8 @@ class PuzzleController(private var handler: Handler, private var puzzleData: Puz
     private fun getInversions(list: ArrayList<Int>): Int {
         var inversions = 0
         for (index in 0 until list.size - 1) {
-            val currentNum = list[index]
             for (x in index + 1 until list.size) {
-                val pairNum = list[x]
-                if (currentNum > pairNum) {
+                if (list[index] > list[x]) {
                     inversions += 1
                 }
             }
@@ -76,12 +75,17 @@ class PuzzleController(private var handler: Handler, private var puzzleData: Puz
      *
      */
     private fun swapCells(cell1: Int, cell2: Int) {
+        // todo: empty cell is always cell2
         val swap = puzzleData.puzzleState[cell1]
+        fun Boolean.toInt() = if (this) 1 else 0
+        numCorrect -= (puzzleData.puzzleState[cell1] == cell1).toInt() + (puzzleData.puzzleState[cell2] == cell2).toInt()
         puzzleData.puzzleState[cell1] = puzzleData.puzzleState[cell2]
         puzzleData.puzzleState[cell2] = swap
+        puzzleData.emptyCell = cell1
         numMoves += 1
         handler.sendMessage(Message.obtain(handler, 2))
-        if (gridSolved(puzzleData.puzzleState)) {
+        numCorrect += (puzzleData.puzzleState[cell1] == cell1).toInt() + (puzzleData.puzzleState[cell2] == cell2).toInt()
+        if (numCorrect == numCells) {
             handler.sendMessage(Message.obtain(handler, 3))
         }
     }
@@ -104,73 +108,72 @@ class PuzzleController(private var handler: Handler, private var puzzleData: Puz
     /**
      * Given the index of a cell that has been clicked, determine if it should be moved by
      */
-    fun cellClick(cellIndex: Int, emptyIndex: Int): Int {
+    fun cellClick(cellIndex: Int, emptyIndex: Int): List<Int> {
         // cell should be in same row/col as empty but only 1 position away
         val cellRow: Int = cellIndex / numCols; val cellCol: Int = cellIndex % numCols
         val emptyCellRow: Int = emptyIndex / numCols; val emptyCellCol: Int = emptyIndex % numCols
         return if ((cellCol == emptyCellCol && abs(cellRow - emptyCellRow) == 1) ||
             (cellRow == emptyCellRow && abs(cellCol - emptyCellCol) == 1)) {
             swapCells(cellIndex, emptyIndex)
-            1
+            listOf(cellIndex, emptyIndex)
         } else {
-            0
+            listOf()
         }
     }
 
-    private val maps: List<List<Int>> = listOf(listOf(0,1,2,3,4,5,6,7), listOf(0,1,3,2,4,7,6,5),
-        listOf(2,3,0,1,6,5,4,7), listOf(2,3,1,0,6,7,4,5))
+    private val maps: List<List<Int>> = listOf(listOf(0,1,2,3,4,5), listOf(0,1,3,2,4,7),
+        listOf(2,3,0,1,6,8), listOf(2,3,1,0,6,9))
 
     /**
      *
      */
     fun cellSwipe(cellIndex: Int, emptyIndex: Int, direction: Int): List<List<Int>> {
         val updates: MutableList<List<Int>> = mutableListOf()
-        val cellRow: Int = cellIndex / numCols; val cellCol: Int = cellIndex % numCols
-        val emptyCellRow: Int = emptyIndex / numCols; val emptyCellCol: Int = emptyIndex % numCols
-        val colDiff: Int = emptyCellCol - cellCol; val rowDiff: Int = emptyCellRow - cellRow
-        val list: List<Int> = listOf(emptyCellRow, cellRow, emptyCellCol, cellCol, colDiff, -1, rowDiff, 1)
-        val vars: List<Int> = List(8) {i: Int -> list[maps[direction - 1][i]]}
-        if (vars[0] == vars[1] && vars[2] > vars[3]) {
-            for (i in 0 until abs(vars[4])) {
-                swapCells(emptyIndex + i * vars[5], emptyIndex + (i + 1) * vars[5])
-                updates.add(listOf(emptyIndex + i * vars[5], emptyIndex + (i + 1) * vars[5]))
+        maps[direction].map { listOf(emptyIndex / numCols, cellIndex / numCols, emptyIndex % numCols, cellIndex % numCols,
+            emptyIndex % numCols - cellIndex % numCols, -1, emptyIndex / numCols - cellIndex / numCols, 1, -4, 4)[it] }.let {
+            if (it[0] == it[1] && it[2] > it[3]) {
+                for (i in 0 until abs(it[4])) {
+                    swapCells(emptyIndex + (i + 1) * it[5], emptyIndex + i * it[5])
+                    updates.add(listOf(emptyIndex + (i + 1) * it[5], emptyIndex + i * it[5]))
+                }
             }
         }
         return updates
     }
 
-    fun cellSwipeSimple(cellIndex: Int, emptyIndex: Int, direction: Int): Int {
+    fun cellSwipeSimple(cellIndex: Int, emptyIndex: Int, direction: Int): List<List<Int>> {
+        val updates: MutableList<List<Int>> = mutableListOf()
         val cellRow: Int = cellIndex / numCols; val cellCol: Int = cellIndex % numCols
         val emptyCellRow: Int = emptyIndex / numCols; val emptyCellCol: Int = emptyIndex % numCols
         val colDiff: Int = emptyCellCol - cellCol; val rowDiff: Int = emptyCellRow - cellRow
-        // 1, 2, 3, 4 = right, left, down, up, respectively
+        // 0, 1, 2, 3 = right, left, down, up, respectively
         when (direction) {
-            1 -> if (emptyCellRow == cellRow && emptyCellCol > cellCol) {
+            0 -> if (emptyCellRow == cellRow && emptyCellCol > cellCol) {
                 for (i in 0 until colDiff) {
-                    swapCells(emptyIndex, emptyIndex)
+                    swapCells(emptyIndex - i - 1, emptyIndex - i)
+                    updates.add(listOf(emptyIndex - i - 1, emptyIndex - i))
                 }
-                return abs(colDiff)
             }
-            2 -> if (emptyCellRow == cellRow && emptyCellCol < cellCol) {
+            1 -> if (emptyCellRow == cellRow && emptyCellCol < cellCol) {
                 for (i in 0 until colDiff) {
-                    swapCells(emptyIndex, emptyIndex)
+                    swapCells(emptyIndex + i + 1, emptyIndex + i)
+                    updates.add(listOf(emptyIndex + i + 1, emptyIndex + i))
                 }
-                return abs(colDiff)
             }
-            3 -> if (emptyCellCol == cellCol && emptyCellRow > cellRow) {
+            2 -> if (emptyCellCol == cellCol && emptyCellRow > cellRow) {
                 for (i in 0 until rowDiff) {
-                    swapCells(emptyIndex,emptyIndex)
+                    swapCells(emptyIndex - 4 * (i + 1), emptyIndex - 4 * i)
+                    updates.add(listOf(emptyIndex - 4 * (i + 1), emptyIndex - 4 * i))
                 }
-                return abs(rowDiff)
             }
-            4 -> if (emptyCellCol == cellCol && emptyCellRow < cellRow) {
+            3 -> if (emptyCellCol == cellCol && emptyCellRow < cellRow) {
                 for (i in 0 until rowDiff) {
-                    swapCells(emptyIndex,emptyIndex)
+                    swapCells(emptyIndex + 4 * (i + 1), emptyIndex + 4 * i)
+                    updates.add(listOf(emptyIndex + 4 * (i + 1), emptyIndex + 4 * i))
                 }
-                return abs(rowDiff)
             }
         }
-        return 0
+        return updates
     }
 
 }

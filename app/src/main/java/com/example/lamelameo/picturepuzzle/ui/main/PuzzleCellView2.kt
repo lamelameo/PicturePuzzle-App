@@ -67,12 +67,13 @@ class PuzzleCellView2 : androidx.appcompat.widget.AppCompatImageView {
      */
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val tag = this.tag as Int
+        Log.i(TAG, "cell:$tag")
         // consume touch with no action taken if empty cell is touched
         if (tag == mainViewModel.emptyCellIndex()) {
             return true
         }
 
-        // TODO: multi finger touch bugs... think ive handled it but keeping jsut in case..
+        // TODO: multi finger touch bugs... think ive handled it but keeping just in case..
         // get pointer id which identifies the touch...can handle multi touch events
         val pointerId = event.getPointerId(event.actionIndex)
         // if the pointer id isnt 0, a touch is currently being processed - ignore this new one to avoid crashes
@@ -80,10 +81,10 @@ class PuzzleCellView2 : androidx.appcompat.widget.AppCompatImageView {
         if (pointerId == 0) {
             when (analyseEventForGesture(event, event.actionMasked, pointerId)) {
                 0 -> { performClick() }  // click
-                1 -> { cellUpdates = mainViewModel.cellSwiped(tag, 1) }  // right
-                2 -> { cellUpdates = mainViewModel.cellSwiped(tag, 2) }  // left
-                3 -> { cellUpdates = mainViewModel.cellSwiped(tag, 3) }  // down
-                4 -> { cellUpdates = mainViewModel.cellSwiped(tag, 4) }  // up
+                1 -> { cellUpdates = mainViewModel.cellSwiped(tag, 0) }  // right
+                2 -> { cellUpdates = mainViewModel.cellSwiped(tag, 1) }  // left
+                3 -> { cellUpdates = mainViewModel.cellSwiped(tag, 2) }  // down
+                4 -> { cellUpdates = mainViewModel.cellSwiped(tag, 3) }  // up
                 -1 -> { Log.i(TAG, "action in progress") }
             }
             for (cells in cellUpdates) {
@@ -112,13 +113,12 @@ class PuzzleCellView2 : androidx.appcompat.widget.AppCompatImageView {
             MotionEvent.ACTION_UP, MotionEvent.ACTION_OUTSIDE, MotionEvent.ACTION_CANCEL -> {
                 mVelocityTracker!!.addMovement(event)
                 mVelocityTracker!!.computeCurrentVelocity(1000)
-                val xCancel: Float = event.rawX
-                val yCancel: Float = event.rawY
-                val xDiff: Float = xCancel - xDown
-                val yDiff: Float = yCancel - yDown
-                val xVelocity: Float = mVelocityTracker!!.getXVelocity(pointerId)
-                val yVelocity: Float = mVelocityTracker!!.getYVelocity(pointerId)
-                val gesture = determineGesture(xVelocity, xDiff, yVelocity, yDiff)
+                val gesture = determineGesture(
+                    mVelocityTracker!!.getXVelocity(pointerId),
+                    event.rawX - xDown,
+                    mVelocityTracker!!.getYVelocity(pointerId),
+                    event.rawY - yDown
+                )
                 // reset velocity tracker
                 mVelocityTracker!!.recycle()
                 mVelocityTracker = null
@@ -172,7 +172,9 @@ class PuzzleCellView2 : androidx.appcompat.widget.AppCompatImageView {
      */
     override fun performClick(): Boolean {
         val cellUpdates = mainViewModel.cellClicked(this.tag as Int)
-        mContext.swapCellImages(cellUpdates[0], cellUpdates[1])
+        if (cellUpdates.isNotEmpty()) {
+            mContext.swapCellImages(cellUpdates[0], cellUpdates[1])
+        }
         return super.performClick()
     }
 
