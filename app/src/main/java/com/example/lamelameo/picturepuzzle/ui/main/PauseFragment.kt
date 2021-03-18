@@ -34,8 +34,8 @@ class PauseFragment : Fragment() {
         // Inflate the layout for this fragment
         mBinding = FragmentPauseBinding.inflate(layoutInflater, container, false)
         // set on click listeners for buttons in the menu
-        mBinding.resumeButton.setOnClickListener { closeFragment() }
-        mBinding.newPuzzle.setOnClickListener {  }
+        mBinding.resumeButton.setOnClickListener { mainViewModel.resumeGame() }
+        mBinding.newPuzzle.setOnClickListener { mainViewModel.finishGame() }
         return mBinding.root
     }
 

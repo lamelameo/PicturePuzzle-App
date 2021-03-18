@@ -1,5 +1,12 @@
 package com.example.lamelameo.picturepuzzle.data
 
-data class BestData(val name: String, val bestMoves: Int, val bestTime: Int) {
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
-}
+@Entity(tableName = "puzzle_best_data")
+data class BestData(
+    @PrimaryKey val puzzleName: String,
+    @ColumnInfo(name = "moves") val moves: Int,
+    @ColumnInfo(name = "time") val time: Int
+    )

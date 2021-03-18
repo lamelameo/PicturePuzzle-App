@@ -1,18 +1,26 @@
 package com.example.lamelameo.picturepuzzle.data
 
-class PuzzleDataRepository private constructor(private val bestDao: BestDataDao) {
 
-    fun addBest(data: BestData) {
-        bestDao.addBest(data)
+class PuzzleDataRepository constructor(private val bestDao: BestDataDao) {
+
+    suspend fun addBest(data: BestData) {
+        bestDao.newEntry(data)
     }
 
-    fun getBests() = bestDao.getBest()
-
-    companion object {
-        @Volatile private var instance: PuzzleDataRepository? = null
-        fun getInstance(bestDao: BestDataDao) =
-            instance?: synchronized(this) {
-                instance ?: PuzzleDataRepository(bestDao).also { instance= it}
-        }
+    suspend fun addBests(list: List<BestData>) {
+        list.forEach { bestData -> bestDao.newEntry(bestData) }
     }
+
+    suspend fun getBest(puzzleName: String) = bestDao.findByPuzzle(puzzleName)
+
+    suspend fun update(data: BestData) {
+        bestDao.updateEntry(data)
+    }
+
+    suspend fun delete(data: BestData) {
+        bestDao.delete(data)
+    }
+
+
+
 }

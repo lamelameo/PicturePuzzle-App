@@ -6,30 +6,35 @@ import android.os.Looper
 import android.os.Message
 import android.util.Log
 import androidx.lifecycle.*
-import com.example.lamelameo.picturepuzzle.data.BestData
-import com.example.lamelameo.picturepuzzle.data.BestDataDao
-import com.example.lamelameo.picturepuzzle.data.PuzzleData
-import com.example.lamelameo.picturepuzzle.data.PuzzleDataRepository
+import com.example.lamelameo.picturepuzzle.data.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
-class MainViewModel(private val imagePath: String?,
-                    private val imageBitmap: Bitmap?,
-                    private val numRows: Int,
-                    private val gridViewSize: Int) : ViewModel() {
+class MainViewModel(
+    imagePath: String?,
+    drawableName: String?,
+    private val dataRepo: PuzzleDataRepository,
+    imageBitmap: Bitmap?,
+    numRows: Int,
+    gridViewSize: Int
+) : ViewModel() {
 
     private val handler: Handler
     private val mTicker: Ticker
     private val controller: PuzzleController
     private val imageController: ImageController
     private val puzzleData: PuzzleData
-//    private val mPuzzleData: MutableLiveData<PuzzleData>
     private val mMoves: MutableLiveData<Int>
     private val mTime: MutableLiveData<Int>
     private val mSolved: Boolean
     private val isSolved: MutableLiveData<Boolean>
     private val gameState: MutableLiveData<Int>
     private val TAG: String = "MainViewModel"
-    private val bestData: BestData
-    //    private var mBestDataRepository: PuzzleDataRepository = PuzzleDataRepository.getInstance()
+    private val puzzleName: String
+    private var bestData: List<Int>? = null
+    private val newBest: MutableLiveData<Boolean> = MutableLiveData(false)
 
     init {
         // TODO: get best data from repository
@@ -39,6 +44,7 @@ class MainViewModel(private val imagePath: String?,
                 when(msg.what) {
                     1 -> tick()
                     2 -> incrementMoves()
+                    3 -> gameSolved()
                 }
             }
         }
@@ -55,8 +61,8 @@ class MainViewModel(private val imagePath: String?,
         isSolved = MutableLiveData(mSolved)
         gameState = MutableLiveData(puzzleData.gameState)
         imageController = ImageController(imagePath, imageBitmap, gridViewSize, numRows)
-        // TODO: get best data from repository
-        bestData = BestData("",0,0)
+        puzzleName = imagePath ?: "default_$drawableName"
+//        bestData = puzzleBest(puzzleName)
     }
 
     override fun onCleared() {
@@ -84,10 +90,8 @@ class MainViewModel(private val imagePath: String?,
         return gameState
     }
 
-    fun getPuzzleBest(name: String): LiveData<List<BestData>> {
-        // TODO: get data from repository
-        val bestRepo = PuzzleDataRepository.getInstance(BestDataDao())
-        return bestRepo.getBests()
+    fun getNewBestLiveData(): LiveData<Boolean> {
+        return newBest
     }
 
     /**
@@ -107,9 +111,10 @@ class MainViewModel(private val imagePath: String?,
      */
     fun cellClicked(cellIndex: Int): List<Int> {
         val outcome = controller.cellClick(cellIndex, puzzleData.emptyCell)
-        if (puzzleData.gameState == 0 && outcome.isNotEmpty()) {
+        if (gameState.value == 0 && outcome.isNotEmpty()) {
             mTicker.startTimer()
-            puzzleData.gameState = 1
+            Log.i(TAG, "cellClicked: game started")
+            gameState.value = 1
         }
         return outcome
     }
@@ -119,9 +124,9 @@ class MainViewModel(private val imagePath: String?,
      */
     fun cellSwiped(cellIndex: Int, direction: Int): List<List<Int>> {
         val outcome = controller.cellSwipe(cellIndex, puzzleData.emptyCell, direction)
-        if (puzzleData.gameState == 0 && outcome.isNotEmpty()) {
+        if (gameState.value == 0 && outcome.isNotEmpty()) {
             mTicker.startTimer()
-            puzzleData.gameState = 1
+            gameState.value = 1
         }
         return outcome
     }
@@ -130,13 +135,9 @@ class MainViewModel(private val imagePath: String?,
         return puzzleData.emptyCell
     }
 
-//    private fun PuzzleData.set(data: Int) = when(data) {
-//        1 ->
-//    }
-
     // TODO: have ViewModel observe lifecycle instead of ticker?
     fun pauseGame(): Boolean {
-        return if (puzzleData.gameState == 1) {
+        return if (gameState.value == 1) {
             mTicker.pauseTimer()
 //            puzzleData.gameState = 2
             gameState.value = 2
@@ -149,20 +150,42 @@ class MainViewModel(private val imagePath: String?,
 
     fun resumeGame() {
         mTicker.startTimer()
+        if (gameState.value != 1) { gameState.value = 1 }
+    }
+
+    private fun gameSolved() {
+        gameState.value = 3
+        var updateBest = false
+        viewModelScope.launch { updateBest = compareBest(puzzleName) }.invokeOnCompletion {
+            if (updateBest) newBest.value = true }
+    }
+
+    private suspend fun compareBest(name: String): Boolean {
+        var result = true
+        dataRepo.getBest(name)?.let {
+            if (it.time >= mTime.value!! && it.moves > mMoves.value!!) {
+                dataRepo.update(BestData(name, mTime.value!!, mMoves.value!!))
+            } else { result = false }
+        } ?: dataRepo.addBest(BestData(name, mMoves.value!!, mTime.value!!))
+        return result
+    }
+
+    fun finishGame() {
+        mTicker.pauseTimer()
+        gameState.value = -1
     }
 
     fun gameState(): Int {
-        return when(puzzleData.gameState) {
+        return when(gameState.value) {
             0 -> 0  // not started
-            1 -> { mTicker.startTimer(); 1 }  // running
+            1 -> 1  // running
             2 -> 2  // paused
             3 -> 3  // solved
-            else -> -1  // should not be possible
+            else -> -1  // -1 if pause fragment new puzzle is clicked, but this should finish the activity
         }
     }
 
     fun incrementMoves() {
-        //TODO: update live data or PuzzleData value?
         mMoves.value = mMoves.value?.inc()
     }
 
@@ -171,12 +194,9 @@ class MainViewModel(private val imagePath: String?,
         Log.i(TAG, "time: " + mTime.value + ", "+ puzzleData.gameTime)
     }
 
-    fun newBest(time: Int, moves: Int) {
-
-    }
-
-    fun newImage() {
-        // TODO: make new best data entry in database
+    suspend fun getPuzzleBests(): List<Int>? {
+        if (bestData == null) bestData = dataRepo.getBest(puzzleName)?.let { listOf(it.moves, it.time) }
+        return bestData
     }
 
 

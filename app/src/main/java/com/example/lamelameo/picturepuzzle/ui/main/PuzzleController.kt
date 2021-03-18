@@ -2,6 +2,7 @@ package com.example.lamelameo.picturepuzzle.ui.main
 
 import android.os.Handler
 import android.os.Message
+import android.util.Log
 import com.example.lamelameo.picturepuzzle.data.PuzzleData
 import java.util.*
 import kotlin.collections.ArrayList
@@ -13,6 +14,7 @@ class PuzzleController(private var handler: Handler, private var puzzleData: Puz
     private val numCells = numCols * numCols
     private var numCorrect = 0
     private var numMoves = 0
+    private val TAG: String = "PuzzleController"
 
     /**
      * Populate a list with cell position indexes in a random order. This order of cells is checked for a property
@@ -75,7 +77,6 @@ class PuzzleController(private var handler: Handler, private var puzzleData: Puz
      *
      */
     private fun swapCells(cell1: Int, cell2: Int) {
-        // todo: empty cell is always cell2
         val swap = puzzleData.puzzleState[cell1]
         fun Boolean.toInt() = if (this) 1 else 0
         numCorrect -= (puzzleData.puzzleState[cell1] == cell1).toInt() + (puzzleData.puzzleState[cell2] == cell2).toInt()
@@ -85,7 +86,9 @@ class PuzzleController(private var handler: Handler, private var puzzleData: Puz
         numMoves += 1
         handler.sendMessage(Message.obtain(handler, 2))
         numCorrect += (puzzleData.puzzleState[cell1] == cell1).toInt() + (puzzleData.puzzleState[cell2] == cell2).toInt()
-        if (numCorrect == numCells) {
+        Log.i(TAG, "numCorrect: $numCorrect")
+        if (gridSolved(puzzleData.puzzleState)) {
+            Log.i(TAG, "Game solved")
             handler.sendMessage(Message.obtain(handler, 3))
         }
     }
@@ -130,7 +133,7 @@ class PuzzleController(private var handler: Handler, private var puzzleData: Puz
     fun cellSwipe(cellIndex: Int, emptyIndex: Int, direction: Int): List<List<Int>> {
         val updates: MutableList<List<Int>> = mutableListOf()
         maps[direction].map { listOf(emptyIndex / numCols, cellIndex / numCols, emptyIndex % numCols, cellIndex % numCols,
-            emptyIndex % numCols - cellIndex % numCols, -1, emptyIndex / numCols - cellIndex / numCols, 1, -4, 4)[it] }.let {
+            emptyIndex % numCols - cellIndex % numCols, -1, emptyIndex / numCols - cellIndex / numCols, 1, -numCols, numCols)[it] }.let {
             if (it[0] == it[1] && it[2] > it[3]) {
                 for (i in 0 until abs(it[4])) {
                     swapCells(emptyIndex + (i + 1) * it[5], emptyIndex + i * it[5])
@@ -162,14 +165,14 @@ class PuzzleController(private var handler: Handler, private var puzzleData: Puz
             }
             2 -> if (emptyCellCol == cellCol && emptyCellRow > cellRow) {
                 for (i in 0 until rowDiff) {
-                    swapCells(emptyIndex - 4 * (i + 1), emptyIndex - 4 * i)
-                    updates.add(listOf(emptyIndex - 4 * (i + 1), emptyIndex - 4 * i))
+                    swapCells(emptyIndex - numCols * (i + 1), emptyIndex - numCols * i)
+                    updates.add(listOf(emptyIndex - numCols * (i + 1), emptyIndex - numCols * i))
                 }
             }
             3 -> if (emptyCellCol == cellCol && emptyCellRow < cellRow) {
                 for (i in 0 until rowDiff) {
-                    swapCells(emptyIndex + 4 * (i + 1), emptyIndex + 4 * i)
-                    updates.add(listOf(emptyIndex + 4 * (i + 1), emptyIndex + 4 * i))
+                    swapCells(emptyIndex + numCols * (i + 1), emptyIndex + numCols * i)
+                    updates.add(listOf(emptyIndex + numCols * (i + 1), emptyIndex + numCols * i))
                 }
             }
         }

@@ -1,22 +1,25 @@
 package com.example.lamelameo.picturepuzzle.data
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import androidx.room.*
 
-class BestDataDao {
-    // TODO: data for each image
-    private val bestsList = mutableListOf<BestData>()
-    private val bests = MutableLiveData<List<BestData>>()
+@Dao
+interface BestDataDao {
+    @Query("SELECT * FROM puzzle_best_data")
+    suspend fun getAll(): List<BestData>?
 
-    init {
-        bests.value = bestsList
-    }
+    @Query("SELECT * FROM puzzle_best_data WHERE puzzleName IN (:names)")
+    suspend fun loadAllBy(names: Array<String>): List<BestData>?
 
-    fun addBest(best: BestData) {
-        bestsList.add(best)
-        bests.value = bestsList
-    }
+    @Query("SELECT * FROM puzzle_best_data WHERE puzzleName is :puzzleName")
+    suspend fun findByPuzzle(puzzleName: String): BestData?
 
-    fun getBest() = bests as LiveData<List<BestData>>
+    @Insert
+    suspend fun newEntry(entry: BestData)
+
+    @Update
+    suspend fun updateEntry(entry: BestData)
+
+    @Delete
+    suspend fun delete(entry: BestData)
 
 }
