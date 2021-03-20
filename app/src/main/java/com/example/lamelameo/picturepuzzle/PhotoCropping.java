@@ -84,7 +84,6 @@ public class PhotoCropping extends AppCompatActivity {
                         savePhoto(mImage);
                     }
                     gameIntent.putExtra("photoPath", mCurrentPhotoPath);
-                    gameIntent.putExtra("puzzleNum", -1);
                     gameIntent.putExtra("numColumns", mGridRows);
                     startActivity(gameIntent);
                 } else {

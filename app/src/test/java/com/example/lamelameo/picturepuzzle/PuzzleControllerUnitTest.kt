@@ -3,12 +3,11 @@ package com.example.lamelameo.picturepuzzle
 import android.os.Handler
 import android.os.Looper
 import com.example.lamelameo.picturepuzzle.data.PuzzleData
-import com.example.lamelameo.picturepuzzle.ui.main.PuzzleController
+import com.example.lamelameo.picturepuzzle.data.PuzzleController
 import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
-import org.mockito.Mockito.`when`
 import org.mockito.junit.MockitoJUnitRunner
 
 

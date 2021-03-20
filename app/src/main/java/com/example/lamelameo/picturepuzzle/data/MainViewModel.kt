@@ -1,4 +1,4 @@
-package com.example.lamelameo.picturepuzzle.ui.main
+package com.example.lamelameo.picturepuzzle.data
 
 import android.graphics.Bitmap
 import android.os.Handler
@@ -6,10 +6,6 @@ import android.os.Looper
 import android.os.Message
 import android.util.Log
 import androidx.lifecycle.*
-import com.example.lamelameo.picturepuzzle.data.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 class MainViewModel(
@@ -37,8 +33,6 @@ class MainViewModel(
     private val newBest: MutableLiveData<Boolean> = MutableLiveData(false)
 
     init {
-        // TODO: get best data from repository
-        // TODO: handle messages from handler 1 = tick timer, 2 = increment moves
         handler = object: Handler(Looper.getMainLooper()) {
             override fun handleMessage(msg: Message) {
                 when(msg.what) {
@@ -62,7 +56,7 @@ class MainViewModel(
         gameState = MutableLiveData(puzzleData.gameState)
         imageController = ImageController(imagePath, imageBitmap, gridViewSize, numRows)
         puzzleName = imagePath ?: "default_$drawableName"
-//        bestData = puzzleBest(puzzleName)
+
     }
 
     override fun onCleared() {
@@ -195,8 +189,7 @@ class MainViewModel(
     }
 
     suspend fun getPuzzleBests(): List<Int>? {
-        if (bestData == null) bestData = dataRepo.getBest(puzzleName)?.let { listOf(it.moves, it.time) }
-        return bestData
+        return bestData ?: dataRepo.getBest(puzzleName)?.let { listOf(it.moves, it.time) }
     }
 
 

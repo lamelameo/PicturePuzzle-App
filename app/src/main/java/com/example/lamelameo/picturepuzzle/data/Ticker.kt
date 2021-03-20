@@ -1,4 +1,4 @@
-package com.example.lamelameo.picturepuzzle.ui.main
+package com.example.lamelameo.picturepuzzle.data
 
 import android.os.Handler
 import android.os.Message
@@ -34,8 +34,9 @@ class Ticker(private var handler: Handler) {
      * game pause or finish. Game pauses mid tick are handled by a delay which is calculated using {@link #tickElapsed}
      * which every call of {@link #pauseTimer()} which resets every tick completion.
      */
-    public fun startTimer() {
-        Log.i("Ticker", "start")
+    fun startTimer() {
+//        Log.i("Ticker", "start")
+        //TODO: can i replace with coroutines?
         tickStartTime = SystemClock.uptimeMillis()
         timerFuture = timerExecutor.scheduleAtFixedRate(timerRunnable, 1000 - tickElapsed, 1000, TimeUnit.MILLISECONDS)
     }
@@ -47,8 +48,8 @@ class Ticker(private var handler: Handler) {
      * once resumed, thus keeping the timer accurate. This is calculated from the system time at the previous tick
      * stored in {@link #tickStartTime} each clock tick and the current system time upon call.
      */
-    public fun pauseTimer() {
-        Log.i("ticker", "pause")
+    fun pauseTimer() {
+//        Log.i("ticker", "pause")
         tickElapsed += SystemClock.uptimeMillis() - tickStartTime
         timerFuture.cancel(false)
     }
@@ -56,12 +57,15 @@ class Ticker(private var handler: Handler) {
     /**
      * Setter function for tickElapsed variable to be accessed from ViewModel after UI has undergone a state change.
      */
-    public fun setTickElapsed(num: Long) {
+    fun setTickElapsed(num: Long) {
         tickElapsed = num
     }
 
-    public fun isRunning(): Boolean {
-        return isRunning
-    }
+    /**
+     * Getter function for tickElapsed variable to be accessed from ViewModel after UI has undergone a state change.
+     */
+    fun getTickElapsed(): Long = tickElapsed
+
+    fun isRunning(): Boolean = isRunning
 
 }

@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -14,12 +13,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.size
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import androidx.room.Room
 import com.example.lamelameo.picturepuzzle.R
 import com.example.lamelameo.picturepuzzle.data.BestsDatabase
+import com.example.lamelameo.picturepuzzle.data.MainViewModel
 import com.example.lamelameo.picturepuzzle.data.PuzzleDataRepository
+import com.example.lamelameo.picturepuzzle.data.ViewModelFactory
 import com.example.lamelameo.picturepuzzle.databinding.Puzzle2ActivityBinding
 import com.example.lamelameo.picturepuzzle.databinding.PuzzleSolvedUiBinding
 import kotlinx.coroutines.GlobalScope
@@ -51,18 +53,25 @@ class PuzzleActivity2 : AppCompatActivity() {
         mBinding.gridLayout.columnCount = numRows
         mBinding.gridLayout.rowCount = numRows
         mBinding.hintButton.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) { mBinding.hintImage.visibility = View.VISIBLE; mBinding.hintImage.isClickable = true
-            } else { mBinding.hintImage.visibility = View.INVISIBLE; mBinding.hintImage.isClickable = false } }
-        mBinding.pauseButton.setOnClickListener { if (!mViewModel.pauseGame())
-            Toast.makeText(applicationContext, "You have not started the puzzle!", Toast.LENGTH_SHORT).show() }
+            if (isChecked) {
+                mBinding.hintImage.visibility = View.VISIBLE; mBinding.hintImage.isClickable = true
+            } else {
+                mBinding.hintImage.visibility = View.INVISIBLE; mBinding.hintImage.isClickable = false
+            }
+        }
+        mBinding.pauseButton.setOnClickListener {
+            if (!mViewModel.pauseGame())
+                Toast.makeText(applicationContext, "You have not started the puzzle!", Toast.LENGTH_SHORT).show()
+        }
 
-        // create or obtain viewmodel and observe livedata for convenient updating of UI state
+        // create or obtain viewmodel and repository instances and observe livedata for convenient updating of UI state
         val db = BestsDatabase.getInstance(this)
         val dataRepo = PuzzleDataRepository(db.bestDao)
         val viewModelFactory = ViewModelFactory(photoPath, "default_$drawableId", imageBitmap,
-            dataRepo, numRows, mBinding.gridLayout.width
+            dataRepo, numRows, mBinding.gridLayout.layoutParams.width
         )
         mViewModel = ViewModelProvider(this, viewModelFactory).get(MainViewModel::class.java)
+        //TODO: coroutines?
         GlobalScope.launch { loadBestsView(mViewModel.getPuzzleBests()) }
         mHandler = Handler(Looper.getMainLooper())
         // TODO: one livedata of PuzzleData instance?
@@ -82,8 +91,10 @@ class PuzzleActivity2 : AppCompatActivity() {
         Log.i(TAG, "open solved UI")
 //        mBinding.hintButton.visibility = View.INVISIBLE; mBinding.hintButton.isClickable = false
         mBinding.solvedUIContainer!!.visibility = View.VISIBLE; mBinding.solvedUIContainer!!.isClickable = true
-        val solvedUIbinding: PuzzleSolvedUiBinding = PuzzleSolvedUiBinding.inflate(layoutInflater,
-            mBinding.solvedUIContainer, true)
+        val solvedUIbinding: PuzzleSolvedUiBinding = PuzzleSolvedUiBinding.inflate(
+            layoutInflater,
+            mBinding.solvedUIContainer, true
+        )
         solvedUIbinding.newButton.setOnClickListener { finish() }
         solvedUIbinding.retryButton.setOnClickListener { startActivity(intent); finish() }
         val time = mViewModel.getTimeLiveData().value
@@ -118,12 +129,12 @@ class PuzzleActivity2 : AppCompatActivity() {
     }
 
     private fun createPuzzleCells(gridLayout: androidx.gridlayout.widget.GridLayout, numRows: Int) {
-        for (i in 0 until numRows*numRows) {
+        for (i in 0 until numRows * numRows) {
             val cellView = PuzzleCellView2(this, mViewModel)
             val cellSize: Int = gridLayout.layoutParams.width / numRows
             gridLayout.addView(cellView, i, ViewGroup.LayoutParams(cellSize, cellSize))
             cellView.tag = i
-            if (i < numRows*numRows - 1) {
+            if (i < numRows * numRows - 1) {
                 cellView.setImageDrawable(BitmapDrawable(resources, mViewModel.getPuzzleImage(i)))
             }
         }
@@ -146,7 +157,7 @@ class PuzzleActivity2 : AppCompatActivity() {
 
     private fun loadBestsView(puzzleBests: List<Int>?) {
         var secs = ""; var mins = ""; var bestMoves = ""
-        if (puzzleBests != null) {
+        puzzleBests?.let {
             secs = puzzleBests[0].rem(60).toString()
             mins = puzzleBests[0].div(60).toString()
             bestMoves = puzzleBests[1].toString()

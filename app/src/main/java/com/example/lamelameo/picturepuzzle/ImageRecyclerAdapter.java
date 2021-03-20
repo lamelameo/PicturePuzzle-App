@@ -2,6 +2,7 @@ package com.example.lamelameo.picturepuzzle;
 
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.appcompat.widget.AppCompatImageView;
@@ -23,9 +24,7 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
     private static final ArrayList<myViewHolder> recyclerViews = new ArrayList<>();
 
     // constructor takes array of drawables resource integers (default images)
-    ImageRecyclerAdapter(int[] drawableInts) {
-        mDrawableInts = drawableInts;
-    }
+    ImageRecyclerAdapter(int[] drawableInts) { mDrawableInts = drawableInts; }
 
     // constructor takes arraylist of drawables (photos)
     ImageRecyclerAdapter(ArrayList<Drawable> images) {
@@ -43,10 +42,6 @@ public class ImageRecyclerAdapter extends RecyclerView.Adapter<ImageRecyclerAdap
 
     void setIsDefaultImages() {
         isDefaultImages = !isDefaultImages;
-    }
-
-    void resetSelection() {
-        mSelectedImage = -1;
     }
 
     static class myViewHolder extends RecyclerView.ViewHolder {

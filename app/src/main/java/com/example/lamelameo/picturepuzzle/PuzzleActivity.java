@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.*;
-import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.gridlayout.widget.GridLayout;
@@ -15,7 +14,6 @@ import android.view.*;
 import android.widget.*;
 import com.example.lamelameo.picturepuzzle.databinding.ActivityPuzzleBinding;
 import com.example.lamelameo.picturepuzzle.databinding.PuzzleSolvedUiBinding;
-import com.example.lamelameo.picturepuzzle.ui.main.Ticker;
 
 import java.io.*;
 import java.util.ArrayList;

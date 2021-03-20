@@ -1,4 +1,4 @@
-package com.example.lamelameo.picturepuzzle;
+package com.example.lamelameo.picturepuzzle.unused;
 
 import android.graphics.*;
 import android.graphics.drawable.BitmapDrawable;
@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.*;
 import android.widget.*;
+import com.example.lamelameo.picturepuzzle.R;
 
 import java.util.ArrayList;
 

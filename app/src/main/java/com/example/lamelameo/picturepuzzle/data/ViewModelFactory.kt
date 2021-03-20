@@ -1,9 +1,8 @@
-package com.example.lamelameo.picturepuzzle.ui.main
+package com.example.lamelameo.picturepuzzle.data
 
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.lamelameo.picturepuzzle.data.PuzzleDataRepository
 
 @Suppress("UNCHECKED_CAST")
 class ViewModelFactory (private val imagePath: String?,

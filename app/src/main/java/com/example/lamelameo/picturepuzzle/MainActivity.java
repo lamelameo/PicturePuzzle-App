@@ -19,6 +19,7 @@ import com.example.lamelameo.picturepuzzle.ui.main.PuzzleActivity2;
 import java.io.File;
 import java.io.FileFilter;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -172,7 +173,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private void getSavedPhotos() {
         // TODO: should limit amount of storable photos, or have on the fly loading of images as list could be huge
-        File[] storedImages = getExternalFilesDir(Environment.DIRECTORY_PICTURES).listFiles();
+        File[] storedImages = Objects.requireNonNull(getExternalFilesDir(Environment.DIRECTORY_PICTURES)).listFiles();
         if (storedImages == null) {
             return;
         }

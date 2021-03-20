@@ -5,8 +5,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import com.example.lamelameo.picturepuzzle.R
+import com.example.lamelameo.picturepuzzle.data.MainViewModel
 import com.example.lamelameo.picturepuzzle.databinding.FragmentPauseBinding
 
 /**

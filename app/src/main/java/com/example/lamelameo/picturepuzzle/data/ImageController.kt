@@ -1,8 +1,7 @@
-package com.example.lamelameo.picturepuzzle.ui.main
+package com.example.lamelameo.picturepuzzle.data
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.util.Log
 
 class ImageController(imagePath: String?, imageBitmap: Bitmap?, gridSize: Int, numRows: Int) {
 

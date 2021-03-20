@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.VelocityTracker
 import com.example.lamelameo.picturepuzzle.R
+import com.example.lamelameo.picturepuzzle.data.MainViewModel
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -37,15 +38,13 @@ class PuzzleCellView2 : androidx.appcompat.widget.AppCompatImageView {
 
     private fun init(attrs: AttributeSet?, defStyle: Int, context: Context, viewModel: MainViewModel) {
         // Load attributes
-        val a = context.obtainStyledAttributes(
-            attrs, R.styleable.PuzzleCellView2, defStyle, 0
-        )
+//        val a = context.obtainStyledAttributes(attrs, R.styleable.PuzzleCellView2, defStyle, 0)
         // initialise attributes
         if (context is PuzzleActivity2) {
             mContext = context
             mainViewModel = viewModel
             DISTANCE_THRESHOLD = dpToPx(11f) // ~1/3 the cell size
-            VELOCITY_THRESHOLD = 200
+            VELOCITY_THRESHOLD = 150
         }
     }
 

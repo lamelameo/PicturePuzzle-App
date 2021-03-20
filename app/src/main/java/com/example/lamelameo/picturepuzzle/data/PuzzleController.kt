@@ -1,9 +1,8 @@
-package com.example.lamelameo.picturepuzzle.ui.main
+package com.example.lamelameo.picturepuzzle.data
 
 import android.os.Handler
 import android.os.Message
 import android.util.Log
-import com.example.lamelameo.picturepuzzle.data.PuzzleData
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.abs
@@ -11,7 +10,6 @@ import kotlin.math.abs
 class PuzzleController(private var handler: Handler, private var puzzleData: PuzzleData, private val numCols: Int) {
 
     //TODO: generates, stores and controls manipulation of the puzzle data
-    private val numCells = numCols * numCols
     private var numCorrect = 0
     private var numMoves = 0
     private val TAG: String = "PuzzleController"
