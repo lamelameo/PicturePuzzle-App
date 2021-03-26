@@ -13,6 +13,7 @@ abstract class BestsDatabase : RoomDatabase() {
 
     abstract val bestDao: BestDataDao
 
+    // TODO: can be used to prepopulate database with entries for default images - need to change best data type to float
     private class BestDatabaseCallback(private val scope: CoroutineScope, private val data: List<Int>): RoomDatabase.Callback() {
         override fun onCreate(db: SupportSQLiteDatabase) {
             super.onCreate(db)

@@ -99,7 +99,7 @@ class PuzzleActivity2 : AppCompatActivity() {
         solvedUIbinding.retryButton.setOnClickListener { startActivity(intent); finish() }
         val time = mViewModel.getTimeLiveData().value
         solvedUIbinding.puzzleDataView.text = String.format(
-            Locale.getDefault(), "Puzzle Solved 😎 \n %02d m : %02d s %d moves",
+            Locale.getDefault(), "Puzzle Solved 😎 \n %02d m : %02d s \n %d moves",
             time?.div(60), time?.rem(60), mViewModel.getMovesLiveData().value
         )
     }
@@ -115,16 +115,17 @@ class PuzzleActivity2 : AppCompatActivity() {
         fragmentTrans.replace(mBinding.pauseContainer.id, mPauseFragment)
         mBinding.pauseContainer.visibility = View.VISIBLE
 //        mBinding.pauseContainer.isClickable = true
-        fragmentTrans.addToBackStack(null) //TODO: needed?
+        // TODO: pause UI stuck on backstack causing lifecycle problems
+        fragmentTrans.addToBackStack(null)
         fragmentTrans.commit()
     }
 
     private fun closePauseUI() {
         val fragmentTrans = supportFragmentManager.beginTransaction()
         fragmentTrans.remove(mPauseFragment)
+        supportFragmentManager.popBackStack()
         mBinding.pauseContainer.visibility = View.INVISIBLE
         mBinding.pauseContainer.isClickable = false
-        fragmentTrans.addToBackStack(null)
         fragmentTrans.commit()
     }
 
@@ -188,13 +189,17 @@ class PuzzleActivity2 : AppCompatActivity() {
         mViewModel.pauseGame()
     }
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        when (mViewModel.gameState()) {
+            2 -> { closePauseUI(); mViewModel.resumeGame() }
+            else -> finish()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
-        when (mViewModel.gameState()) {
-            1 -> {  }
-            2 -> { Log.i(TAG, "resumed - remove pause") }
-            3 -> {  }
-        }
+        Log.i(TAG, "onResume")
     }
 
 

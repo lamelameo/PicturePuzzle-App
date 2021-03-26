@@ -48,7 +48,6 @@ class MainViewModel(
         puzzleData = PuzzleData(puzzleState = ArrayList(), emptyCell = gridSize - 1)
         controller = PuzzleController(handler, puzzleData, numRows)
         puzzleData.puzzleState = controller.generatePuzzle(gridSize)
-//        mPuzzleData = MutableLiveData(puzzleData)
         mMoves = MutableLiveData(puzzleData.numMoves)
         mTime = MutableLiveData(puzzleData.gameTime)
         mSolved = false  // set based on puzzleData.gameState?
@@ -63,10 +62,6 @@ class MainViewModel(
         super.onCleared()
         Log.i("PuzzleViewModel", "puzzle view model destroyed")
     }
-
-//    fun getPuzzleData(): LiveData<PuzzleData> {
-//        return mPuzzleData
-//    }
 
     fun getMovesLiveData(): LiveData<Int> {
         return mMoves
@@ -107,7 +102,6 @@ class MainViewModel(
         val outcome = controller.cellClick(cellIndex, puzzleData.emptyCell)
         if (gameState.value == 0 && outcome.isNotEmpty()) {
             mTicker.startTimer()
-            Log.i(TAG, "cellClicked: game started")
             gameState.value = 1
         }
         return outcome
@@ -135,7 +129,7 @@ class MainViewModel(
             mTicker.pauseTimer()
 //            puzzleData.gameState = 2
             gameState.value = 2
-            Log.i(TAG, "livedata: ${gameState.value}, puzzledata: ${puzzleData.gameState}")
+//            Log.i(TAG, "livedata: ${gameState.value}, puzzledata: ${puzzleData.gameState}")
             true
         } else {
             false
@@ -179,13 +173,12 @@ class MainViewModel(
         }
     }
 
-    fun incrementMoves() {
+    private fun incrementMoves() {
         mMoves.value = mMoves.value?.inc()
     }
 
-    fun tick() {
+    private fun tick() {
         mTime.value = mTime.value?.inc()
-        Log.i(TAG, "time: " + mTime.value + ", "+ puzzleData.gameTime)
     }
 
     suspend fun getPuzzleBests(): List<Int>? {

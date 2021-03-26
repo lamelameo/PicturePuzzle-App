@@ -75,6 +75,7 @@ class PuzzleController(private var handler: Handler, private var puzzleData: Puz
      *
      */
     private fun swapCells(cell1: Int, cell2: Int) {
+        //TODO: fix continuous counting function
         val swap = puzzleData.puzzleState[cell1]
         fun Boolean.toInt() = if (this) 1 else 0
         numCorrect -= (puzzleData.puzzleState[cell1] == cell1).toInt() + (puzzleData.puzzleState[cell2] == cell2).toInt()

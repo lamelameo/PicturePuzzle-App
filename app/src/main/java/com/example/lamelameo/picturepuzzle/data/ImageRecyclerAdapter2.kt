@@ -3,7 +3,6 @@ package com.example.lamelameo.picturepuzzle.data
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,6 +11,8 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.children
 import androidx.recyclerview.widget.RecyclerView
 import com.example.lamelameo.picturepuzzle.R
+import com.squareup.picasso.Picasso
+import java.io.File
 
 class ImageRecyclerAdapter2(private val mDrawableInts: List<Int>?,
                             private val mPhotoPaths: MutableList<String>?,
@@ -19,6 +20,7 @@ class ImageRecyclerAdapter2(private val mDrawableInts: List<Int>?,
     RecyclerView.Adapter<ImageRecyclerAdapter2.MyViewHolder>() {
 
     private val TAG = "ImageRecyclerAdapter2"
+    //TODO: selected image is not saved on screen rotation
     private var selectedImage: Int = -1
 
     class MyViewHolder(val mPreviewLayout: ConstraintLayout, val mImageView: AppCompatImageView) :
@@ -29,11 +31,17 @@ class ImageRecyclerAdapter2(private val mDrawableInts: List<Int>?,
         return selectedImage
     }
 
-    private val recyclerViewListener = View.OnClickListener { v ->
+    // clears any viewholders which may have been previously selected but were unselected while out of view of UI
+    override fun onViewAttachedToWindow(holder: MyViewHolder) {
+        super.onViewAttachedToWindow(holder)
+        if (holder.mPreviewLayout.tag != selectedImage) holder.mPreviewLayout.background = null
+    }
+
+    private val viewHolderListener = View.OnClickListener { v ->
         // TODO: if we dont use adapter to get selected image it always uses default instance variable
         // clear the previous selection graphic (if any) before checking for new selection
         val adapter = mRecyclerView.adapter as ImageRecyclerAdapter2
-        mRecyclerView.children.forEach { if (it.tag == adapter.selectedImage) it.background = null; return@forEach }
+        mRecyclerView.children.forEach { it.background = null }
         // clicked selected
         if (v.tag == adapter.selectedImage) {
             adapter.selectedImage = -1
@@ -46,7 +54,7 @@ class ImageRecyclerAdapter2(private val mDrawableInts: List<Int>?,
     // creates holders for recycler
     override fun onCreateViewHolder(parent: ViewGroup, i: Int): MyViewHolder {
         val layout = LayoutInflater.from(parent.context).inflate(R.layout.image_preview, parent, false) as ConstraintLayout
-        layout.setOnClickListener(recyclerViewListener)
+        layout.setOnClickListener(viewHolderListener)
         return MyViewHolder(layout, layout.findViewById(R.id.previewImage))
     }
 
@@ -54,9 +62,14 @@ class ImageRecyclerAdapter2(private val mDrawableInts: List<Int>?,
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
         // set image and tag corresponding to the set image for the current holder
         mPhotoPaths?.let {
-            holder.mImageView.setImageBitmap(scalePhoto(holder.mImageView.layoutParams.width, it[position]))
+            val size = holder.mImageView.layoutParams.width
+//            holder.mImageView.setImageBitmap(scalePhoto(holder.mImageView.layoutParams.width, it[position]))
+            Picasso.get().load(File(it[position])).placeholder(android.R.drawable.ic_menu_gallery).resize(size, size)
+                .into(holder.mImageView)
         }
-            ?: mDrawableInts?.let { holder.mImageView.setImageResource(it[position])
+            ?: mDrawableInts?.let {
+//                holder.mImageView.setImageResource(it[position])
+                Picasso.get().load(it[position]).into(holder.mImageView)
             }
 
         holder.mPreviewLayout.tag = position
@@ -75,6 +88,7 @@ class ImageRecyclerAdapter2(private val mDrawableInts: List<Int>?,
     fun addPhoto(path: String) {
         val position: Int = itemCount
         mPhotoPaths?.add(path)
+//        Log.i(TAG, "position: $position")
         this.notifyItemInserted(position)
     }
 
