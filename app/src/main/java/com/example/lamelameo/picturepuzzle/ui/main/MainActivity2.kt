@@ -60,12 +60,7 @@ class MainActivity2: AppCompatActivity() {
         val startPhotoActivity = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             result: ActivityResult ->
                 if (result.resultCode == Activity.RESULT_OK) {
-                    Log.i(TAG, "got photos back")
-                //TODO: start photocropping with code then when press back set photo data as list of paths then update here
-                    result.data?.getStringArrayListExtra("savedPhotos")?.forEach { path ->
-                        mPhotoAdapter.addPhoto(path)
-                        mRecyclerView.adapter?.notifyDataSetChanged()
-                    }
+                    result.data?.getStringArrayListExtra("savedPhotos")?.let { mPhotoAdapter.addPhotos(it) }
                 }
         }
 

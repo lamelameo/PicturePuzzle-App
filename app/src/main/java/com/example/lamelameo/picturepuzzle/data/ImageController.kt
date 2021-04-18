@@ -2,6 +2,7 @@ package com.example.lamelameo.picturepuzzle.data
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Log
 
 class ImageController(imagePath: String?, imageBitmap: Bitmap?, gridSize: Int, numRows: Int) {
 
@@ -59,7 +60,8 @@ class ImageController(imagePath: String?, imageBitmap: Bitmap?, gridSize: Int, n
     private fun createCellBitmaps(bmp: Bitmap, rows: Int): List<Bitmap> {
         // determine cell size in pixels from the image size and set amount of rows/cols
         val bmps = mutableListOf<Bitmap>()
-        val cellSize: Int = bmp.width / rows
+        val bmpSize = bmp.width.coerceAtMost(bmp.height)  // in case we do not have a square cropped image
+        val cellSize: Int = bmpSize / rows
         // for each row loop 4 times creating a new cropped image from original bitmap and add to adapter dataset
         for (x in 0 until rows) {
             // for each row, increment y value to start the bitmap at

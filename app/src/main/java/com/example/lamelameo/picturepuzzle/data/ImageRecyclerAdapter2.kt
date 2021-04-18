@@ -85,11 +85,10 @@ class ImageRecyclerAdapter2(private val mDrawableInts: List<Int>?,
         return mPhotoPaths?.size ?: mDrawableInts!!.size
     }
 
-    fun addPhoto(path: String) {
+    fun addPhotos(newPaths: List<String>) {
         val position: Int = itemCount
-        mPhotoPaths?.add(path)
-//        Log.i(TAG, "position: $position")
-        this.notifyItemInserted(position)
+        newPaths.forEach { mPhotoPaths?.add(it) }
+        notifyItemRangeInserted(position, newPaths.size)
     }
 
     /**

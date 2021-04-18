@@ -26,6 +26,7 @@ import java.io.IOException
 import java.lang.Exception
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.max
 
 class PhotoActivity : AppCompatActivity() {
 
@@ -248,7 +249,7 @@ class PhotoActivity : AppCompatActivity() {
             val bmpH = it.height
             val bmpW = it.width
             val matrix = Matrix()
-            val scale = 1000f / bmpH
+            val scale = 1000f / max(bmpW, bmpH)
             matrix.postScale(scale, scale)
             Bitmap.createBitmap(it, 0, 0, bmpW, bmpH, matrix, true)
         }
